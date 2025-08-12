@@ -70,7 +70,9 @@ class OficioController extends Controller
 			'oficios.descripcion_rechazo',
 			'oficios.finalizado',
 			'oficios.respuesta',
+			'oficios.oficio_final',
 			'oficios.descripcion_rechazo_jefe',
+			'descripcion_rechazo_final',
 			DB::raw("RIGHT(oficios.archivo_respuesta, 3) as extension"),
 			'respuestas_oficio.nombre as destinatario'
     	)
@@ -99,6 +101,8 @@ class OficioController extends Controller
 			'id_usuario',
 			'descripcion_rechazo_jefe',
 			'descripcion_rechazo_final',
+			'archivo',
+			'masivo',
 			DB::raw("CONCAT( RIGHT('0'+cast(DAY(nuevos_oficios.created_at) as varchar(2)),2) ,' de ', dbo.fn_GetMonthName (nuevos_oficios.created_at, 'Spanish'),' de ',YEAR(nuevos_oficios.created_at),' a las ', CONVERT(VARCHAR(5),nuevos_oficios.created_at,108)) as f_ingreso"),
 			DB::raw("RIGHT(nuevos_oficios.archivo_respuesta, 3) as extension"),
 		)
@@ -255,6 +259,7 @@ class OficioController extends Controller
 			'oficios.area as id_area',
 			'oficios.enviado',
 			'oficios.archivo_respuesta',
+			'oficios.oficio_final',
 			DB::raw("RIGHT(oficios.archivo_respuesta, 3) as extension"),
     	)
     	->join('cat_areas','cat_areas.id','oficios.area')
@@ -395,7 +400,11 @@ class OficioController extends Controller
 			IBitacoraOficio($id,'Respuesta enviada', 'Se ha enviado la respuesta del oficio','fa fa-send-o', 'primary');
 
 			$usuario = infoUsuario($oficio->id_usuario);
-			
+
+
+			$rutaPDF = $this->exportapdf($id, 1);
+			$oficio->oficio_final = $rutaPDF;
+
 			$mail = Mail::to($jefe->email);
 			if (!empty($usuario)) {
 				$mail->cc($usuario->email);
@@ -586,7 +595,7 @@ class OficioController extends Controller
 	 * @param int $id ID del oficio a exportar.
 	 * @return \Illuminate\Http\Response Respuesta HTTP con el PDF generado para visualización.
 	 */
-	public function exportapdf($id)
+	public function exportapdf($id, $guarda = 0)
 	{
 		$fecha = date('Y-m-d');
 
@@ -623,7 +632,6 @@ class OficioController extends Controller
 		->leftJoin('users as u', function($join)
 		{
 			$join->on('u.rol', '=', DB::raw("4"));
-			$join->on('u.id_proceso', '=', 'oficios.proceso_impacta');
 			$join->on('u.id', '=', 'oficios.id_usuario');
 
 		})
@@ -638,8 +646,15 @@ class OficioController extends Controller
 			'fechaEscrita' => $fechaEscrita
 		]);
 
+		if ($guarda == 1) {
+			$rutaArchivo = 'pdfs_oficios/oficio_' . $id . '_' . now()->format('YmdHis') . '.pdf';
+			$pdfContent = $pdf->output();
+			\Storage::disk('files')->put($rutaArchivo, $pdfContent);
+			
+			return $rutaArchivo;
+		}
 	
-			return $pdf->stream('respuesta_oficio.pdf');
+		return $pdf->stream('respuesta_oficio.pdf');
 		
 	}
 
@@ -734,7 +749,11 @@ class OficioController extends Controller
 		$archivo = 'recibido_oficios/'.time()."_".\Auth::user()->id."_".$request->archivo->getClientOriginalName();
 		$path = \Storage::disk('files')->put($archivo, \File::get($request->archivo));
 
-		$oficio = Oficio::find($request->id);
+		if($request->tipo == 'respuesta'){
+			$oficio = Oficio::find($request->id);
+		}else{
+			$oficio = NuevoOficio::find($request->id);
+		}
 		$oficio->archivo_respuesta = $archivo;
 		$oficio->save();
 

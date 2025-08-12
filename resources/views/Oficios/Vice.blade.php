@@ -120,12 +120,12 @@
     </style>
 </head>
 <body>
-    <img src="{{ public_path('img/minerva_gris.png') }}" class="background" />
+    <!-- <img src="{{ public_path('img/minerva_gris.png') }}" class="background" />  descomentar cuando no haya hojas membretadas -->
     <header>
-        <img src="{{ public_path('img/minver_buap_azul.png') }}" width="100" >
+        <!-- <img src="{{ public_path('img/minver_buap_azul.png') }}" width="100" >  descomentar cuando no haya hojas membretadas -->  
     </header>
     <footer>
-    <div style="width: 100%; text-align: center; font-size: 10px; color: rgb(136, 136, 136); padding: 4px 0 !important; background: rgba(255,255,255,0.8);">
+    <div style="width: 100%; text-align: center; font-size: 10px; color: rgb(136, 136, 136); padding: 4px 0 !important; background: rgba(255,255,255,0.8); display:none;"> <!-- display:none; quitar cuando no haya hojas membretadas -->
         <table style="margin: 0 auto;  width: auto;">
             <tr>
                 <td style="text-align: right; width: 90px;  vertical-align: top; padding-right: 0 !important; border: none !important; line-height: 0.8 !important;">
@@ -178,8 +178,10 @@
             
             <p style="font-family: 'SourceSansPro';">Dr. José Jaime Vázquez López</p>
             <p style="font-family: 'SourceSansPro';">Vicerrector de Docencia</p>
+            <!-- Descomentart si ya quieren sello y firma
             <img src="{{ public_path('img/sello.png') }}" class="sello-movil" />
             <img src="{{ public_path('img/firma.png') }}" class="firma-movil" />
+            -->
         </div>
     
 
