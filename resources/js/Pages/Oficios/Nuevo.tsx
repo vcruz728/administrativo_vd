@@ -80,37 +80,13 @@ export default function Nuevo({
     );
     const [destinatarios, setDestinatarios] = useState<any[]>([]);
     const [showDos, setShowDos] = useState(false);
-    const htmlInicial = `<div>Por este medio le envío un cordial saludo, asimismo solicito de su apoyo</div>`;
-
-    useEffect(() => {
-        if (
-            oficio?.id_directorio !== undefined &&
-            oficio?.id_directorio !== null
-        ) {
-            if (oficio.tipo_destinatario === "Externo") {
-                setDestinatarios(externos);
-            } else {
-                setDestinatarios(directorioAll);
-            }
-
-            selectDirec.current!.selectOption({
-                value: oficio.id_directorio,
-                label: oficio.nombre,
-            });
-        }
-    }, []);
-
-    useEffect(() => {
-        if (oficio.tipo_destinatario === "Externo") {
-            setDestinatarios(externos);
-        } else {
-            setDestinatarios(directorioAll);
-        }
-    }, [destinatariosOficio]);
+    const [numOficios, setNumOficios] = useState("0");
+    const htmlInicial = `<div>Por este medio le envío un cordial saludo, asimismo solicito de su apoyo </div>`;
 
     useEffect(() => {
         setData("id_oficio", oficio?.id || 0);
         formGrupal.setData("id", oficio?.id || 0);
+        formDestinatarios.setData("id_oficio", oficio?.id || 0);
     }, [oficio]);
 
     useEffect(() => {
@@ -133,6 +109,14 @@ export default function Nuevo({
         }
     }, [error]);
 
+    useEffect(() => {
+        if (formDestinatarios.data.tipo == "1") {
+            setDestinatarios(directorioAll);
+        } else if (formDestinatarios.data.tipo == "2") {
+            setDestinatarios(externos);
+        }
+    }, [destinatariosOficio]);
+
     const {
         data,
         setData,
@@ -150,6 +134,7 @@ export default function Nuevo({
         dependenciaDos: oficio?.dependencia,
         dirigido_aDos: oficio?.id_directorio,
         asunto: oficio?.respuesta || htmlInicial,
+        comentario: oficio?.comentario,
     });
 
     const submit: FormEventHandler = (e) => {
@@ -282,9 +267,23 @@ export default function Nuevo({
     }
 
     const nuevoGrupal = () => {
+        if (parseInt(numOficios) <= 0) {
+            toast(
+                "Error: Debe haber al menos un oficio para crear un oficio grupal.",
+                {
+                    style: {
+                        padding: "25px",
+                        color: "#fff",
+                        backgroundColor: "#ff4d4f",
+                    },
+                    position: "top-center",
+                }
+            );
+            return;
+        }
         Swal.fire({
             title: "¿Está seguro?",
-            text: "Se le asignara un folio de oficio el cual tendra que usar para el oficio grupal",
+            text: "Se le asignaran los folios de oficio los cuales tendra que usar para el oficio grupal",
             icon: "warning",
             showDenyButton: true,
             showCancelButton: false,
@@ -295,7 +294,11 @@ export default function Nuevo({
             },
         }).then((result) => {
             if (result.isConfirmed) {
-                router.post(route(`nuevo.oficio.grupal`));
+                router.post(
+                    route(`nuevo.oficio.grupal`, {
+                        numero: numOficios,
+                    })
+                );
             }
         });
     };
@@ -331,12 +334,7 @@ export default function Nuevo({
                 <PageHeader
                     titles="Nuevo Oficio"
                     active="Nuevo Oficio"
-                    items={[
-                        {
-                            titulo: "Mis oficios",
-                            urlHeader: "/oficios/mis-oficios",
-                        },
-                    ]}
+                    items={[]}
                 />
                 <Row>
                     <Col md={12}>
@@ -360,7 +358,7 @@ export default function Nuevo({
                                     >
                                         <Tab
                                             eventKey="tab1"
-                                            title="Individual"
+                                            title="Individual - Masivo"
                                             hidden={
                                                 oficio?.masivo == 1
                                                     ? true
@@ -369,6 +367,59 @@ export default function Nuevo({
                                         >
                                             <Row>
                                                 <Row className="mt-5">
+                                                    {oficio?.descripcion_rechazo_jefe !==
+                                                        undefined &&
+                                                    oficio?.descripcion_rechazo_jefe !==
+                                                        null ? (
+                                                        <Col
+                                                            xs={12}
+                                                            className="mb-5"
+                                                        >
+                                                            <Form.Label>
+                                                                Breve
+                                                                descripción del
+                                                                rechazo por
+                                                                parte de su jefe
+                                                                de área:
+                                                            </Form.Label>
+                                                            <textarea
+                                                                className="form-control"
+                                                                value={
+                                                                    oficio?.descripcion_rechazo_jefe
+                                                                }
+                                                                rows={3}
+                                                                disabled
+                                                            ></textarea>
+                                                        </Col>
+                                                    ) : null}
+
+                                                    {oficio?.descripcion_rechazo_final !==
+                                                        undefined &&
+                                                    oficio?.descripcion_rechazo_final !==
+                                                        null ? (
+                                                        <Col
+                                                            xs={12}
+                                                            className="mb-5"
+                                                        >
+                                                            <Form.Label>
+                                                                Breve
+                                                                descripción del
+                                                                rechazo por
+                                                                parte de
+                                                                recepción
+                                                                documental:
+                                                            </Form.Label>
+                                                            <textarea
+                                                                className="form-control"
+                                                                value={
+                                                                    oficio?.descripcion_rechazo_final
+                                                                }
+                                                                rows={3}
+                                                                disabled
+                                                            ></textarea>
+                                                        </Col>
+                                                    ) : null}
+
                                                     <Col xs={12}>
                                                         <h4>
                                                             Ingrese aquí el
@@ -392,6 +443,7 @@ export default function Nuevo({
                                                             setDefaultStyle="font-family: 'SourceSansPro'; font-size: 12px;"
                                                             setOptions={{
                                                                 lang: sunEditorLangEs,
+
                                                                 buttonList: [
                                                                     [
                                                                         "undo",
@@ -460,6 +512,33 @@ export default function Nuevo({
 
                                                     <Col
                                                         xs={12}
+                                                        className="mb-5 mt-5"
+                                                    >
+                                                        <Form.Label>
+                                                            Ingrese un
+                                                            comentario referente
+                                                            a la respuesta del
+                                                            oficio
+                                                        </Form.Label>
+                                                        <textarea
+                                                            className="form-control"
+                                                            value={
+                                                                data.comentario
+                                                            }
+                                                            onChange={(e) =>
+                                                                setData(
+                                                                    "comentario",
+                                                                    e.target
+                                                                        .value
+                                                                )
+                                                            }
+                                                            maxLength={1000}
+                                                            rows={3}
+                                                        ></textarea>
+                                                    </Col>
+
+                                                    <Col
+                                                        xs={12}
                                                         className="d-flex justify-content-end mt-5"
                                                     >
                                                         <button
@@ -473,59 +552,6 @@ export default function Nuevo({
 
                                                 {oficio?.id !== undefined ? (
                                                     <>
-                                                        {oficio?.descripcion_rechazo_jefe !==
-                                                            undefined &&
-                                                        oficio?.descripcion_rechazo_jefe !==
-                                                            null ? (
-                                                            <Col
-                                                                xs={12}
-                                                                className="mb-5"
-                                                            >
-                                                                <Form.Label>
-                                                                    Breve
-                                                                    descripción
-                                                                    del rechazo
-                                                                    por parte de
-                                                                    su jefe de
-                                                                    área:
-                                                                </Form.Label>
-                                                                <textarea
-                                                                    className="form-control"
-                                                                    value={
-                                                                        oficio?.descripcion_rechazo_jefe
-                                                                    }
-                                                                    rows={3}
-                                                                    disabled
-                                                                ></textarea>
-                                                            </Col>
-                                                        ) : null}
-
-                                                        {oficio?.descripcion_rechazo_final !==
-                                                            undefined &&
-                                                        oficio?.descripcion_rechazo_final !==
-                                                            null ? (
-                                                            <Col
-                                                                xs={12}
-                                                                className="mb-5"
-                                                            >
-                                                                <Form.Label>
-                                                                    Breve
-                                                                    descripción
-                                                                    del rechazo
-                                                                    por parte de
-                                                                    recepción
-                                                                    documental:
-                                                                </Form.Label>
-                                                                <textarea
-                                                                    className="form-control"
-                                                                    value={
-                                                                        oficio?.descripcion_rechazo_final
-                                                                    }
-                                                                    rows={3}
-                                                                    disabled
-                                                                ></textarea>
-                                                            </Col>
-                                                        ) : null}
                                                         <form
                                                             onSubmit={
                                                                 submitDestinatario
@@ -571,12 +597,6 @@ export default function Nuevo({
                                                                                         "Interno"
                                                                                     );
                                                                                 }}
-                                                                                checked={
-                                                                                    data.destinatarioDos ==
-                                                                                    "Interno"
-                                                                                        ? true
-                                                                                        : false
-                                                                                }
                                                                             />
                                                                             <span className="custom-control-label">
                                                                                 Interno
@@ -600,12 +620,6 @@ export default function Nuevo({
                                                                                         "Externo"
                                                                                     );
                                                                                 }}
-                                                                                checked={
-                                                                                    data.destinatarioDos ==
-                                                                                    "Externo"
-                                                                                        ? true
-                                                                                        : false
-                                                                                }
                                                                             />
                                                                             <span className="custom-control-label">
                                                                                 Externo
@@ -694,8 +708,15 @@ export default function Nuevo({
                                                                         language,
                                                                         autoWidth:
                                                                             false,
+                                                                        ordering:
+                                                                            false,
                                                                     }}
                                                                     columns={[
+                                                                        {
+                                                                            data: "id",
+                                                                            title: "Acciones",
+                                                                            width: "10%",
+                                                                        },
                                                                         {
                                                                             title: "Nombre",
                                                                             data: "nombre",
@@ -711,15 +732,10 @@ export default function Nuevo({
                                                                             data: "dependencia",
                                                                             width: "30%",
                                                                         },
-                                                                        {
-                                                                            data: "id",
-                                                                            title: "Acciones",
-                                                                            width: "10%",
-                                                                        },
                                                                     ]}
                                                                     className="display table-bordered  border-bottom ancho100"
                                                                     slots={{
-                                                                        3: (
+                                                                        0: (
                                                                             data: any,
                                                                             row: any
                                                                         ) => (
@@ -1100,20 +1116,8 @@ export default function Nuevo({
                                                                         marginRight: 30,
                                                                     }}
                                                                 >
-                                                                    Enviar
-                                                                    Respuesta
-                                                                </button>
-
-                                                                <button
-                                                                    className="btn btn-success"
-                                                                    onClick={() =>
-                                                                        setShow(
-                                                                            true
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    Ver vista
-                                                                    previa
+                                                                    Enviar a
+                                                                    revisión
                                                                 </button>
                                                             </Col>
                                                             <Col
@@ -1187,19 +1191,47 @@ export default function Nuevo({
                                                 ) : null}
 
                                                 {oficio?.id === undefined ? (
-                                                    <Col
-                                                        md={12}
-                                                        className="d-flex justify-content-center mb-4"
-                                                    >
-                                                        <Button
-                                                            className="btn btn-primary"
-                                                            onClick={
-                                                                nuevoGrupal
-                                                            }
+                                                    <>
+                                                        <Col
+                                                            md={12}
+                                                            className="d-flex justify-content-center mb-4"
                                                         >
-                                                            Obtener Folio
-                                                        </Button>
-                                                    </Col>
+                                                            <div className="form-group">
+                                                                <label htmlFor="num_folios">
+                                                                    Numero de
+                                                                    oficios que
+                                                                    realizara
+                                                                </label>
+                                                                <input
+                                                                    type="number"
+                                                                    name="num_folios"
+                                                                    className="form-control"
+                                                                    onChange={(
+                                                                        e
+                                                                    ) =>
+                                                                        setNumOficios(
+                                                                            e
+                                                                                .target
+                                                                                .value
+                                                                        )
+                                                                    }
+                                                                />
+                                                            </div>
+                                                        </Col>
+                                                        <Col
+                                                            md={12}
+                                                            className="d-flex justify-content-center mb-4"
+                                                        >
+                                                            <Button
+                                                                className="btn btn-primary"
+                                                                onClick={
+                                                                    nuevoGrupal
+                                                                }
+                                                            >
+                                                                Obtener Folio
+                                                            </Button>
+                                                        </Col>
+                                                    </>
                                                 ) : (
                                                     <>
                                                         <Col
@@ -1209,7 +1241,7 @@ export default function Nuevo({
                                                             <h3>
                                                                 Numero de folio:{" "}
                                                                 {
-                                                                    oficio.oficio_respuesta
+                                                                    oficio.folios_masivos
                                                                 }
                                                             </h3>
                                                         </Col>

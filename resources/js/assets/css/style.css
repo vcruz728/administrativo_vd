@@ -4825,6 +4825,13 @@ button {
 button:focus {
     outline: 0;
 }
+.dt-buttons {
+    display: none !important;
+}
+
+.sun-editor-editable, .sun-editor-editable * {
+    font-family: 'SourceSansPro', Arial, sans-serif !important;
+}
 
 input,
 button,

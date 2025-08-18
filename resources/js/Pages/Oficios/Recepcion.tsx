@@ -4,18 +4,33 @@ import { useState, Fragment, useEffect } from "react";
 import { Card, Row, Col, Button, Tabs, Tab } from "react-bootstrap";
 import PageHeader from "../../Layouts/layoutcomponents/pageHeader";
 import "filepond/dist/filepond.min.css";
-import DataTable from "datatables.net-react";
-import DT from "datatables.net-bs5";
-import "datatables.net-responsive-bs5";
 // @ts-ignore
 import language from "datatables.net-plugins/i18n/es-MX.mjs";
 import LineaTiempo from "@/types/LineaTiempo";
-import $ from "jquery";
 import VerPdf from "@/types/VerPdf";
+
+import $ from "jquery";
+import DataTable from "datatables.net-react";
+import DT from "datatables.net-bs5";
+
+// Importa JSZip y asigna a window si es necesario
+import JSZip from "jszip";
+// @ts-ignore
+window.JSZip = JSZip;
+
+// Importa los botones de DataTables
+import "datatables.net-buttons-bs5";
+import "datatables.net-buttons/js/buttons.html5.js";
 
 DataTable.use(DT);
 
-export default function Recepcion({ oficios }: { oficios: [] }) {
+export default function Recepcion({
+    oficios,
+    nuevoHistorico,
+}: {
+    oficios: [];
+    nuevoHistorico: [];
+}) {
     const [showLinea, setShowLinea] = useState<boolean>(false);
     const [show, setShow] = useState(false);
     const [idOficio, setIdOficio] = useState(0);
@@ -102,12 +117,45 @@ export default function Recepcion({ oficios }: { oficios: [] }) {
                                                     Nueva recepción
                                                 </Link>
                                             </Col>
-                                            <Col md={12}>
+                                            <Col
+                                                md={12}
+                                                className="table-responsive"
+                                            >
+                                                <div className="mb-3 d-flex justify-content-end">
+                                                    <button
+                                                        className="btn btn-success"
+                                                        onClick={() => {
+                                                            const table =
+                                                                $(
+                                                                    "#activos-table"
+                                                                ).DataTable();
+                                                            table
+                                                                .button(
+                                                                    ".buttons-excel"
+                                                                )
+                                                                .trigger();
+                                                        }}
+                                                    >
+                                                        Exportar a Excel
+                                                    </button>
+                                                </div>
                                                 <DataTable
+                                                    id="activos-table"
                                                     data={activos}
                                                     options={{
                                                         language,
                                                         order: [],
+                                                        buttons: [
+                                                            {
+                                                                extend: "excel",
+                                                                exportOptions: {
+                                                                    columns: [
+                                                                        1, 2, 3,
+                                                                        4, 5, 6,
+                                                                    ], // exporta solo las primeras 8 columnas
+                                                                },
+                                                            },
+                                                        ],
                                                     }}
                                                     columns={[
                                                         {
@@ -158,6 +206,12 @@ export default function Recepcion({ oficios }: { oficios: [] }) {
                                                         {
                                                             data: "proceso",
                                                             title: "Acciones",
+                                                        },
+                                                        {
+                                                            data: "descripcion",
+                                                            title: "Descripción",
+                                                            visible: false,
+                                                            searchable: true,
                                                         },
                                                     ]}
                                                     className="display table-bordered text-nowrap border-bottom"
@@ -211,11 +265,41 @@ export default function Recepcion({ oficios }: { oficios: [] }) {
                                                 md={12}
                                                 className="table-responsive"
                                             >
+                                                <div className="mb-3 d-flex justify-content-end">
+                                                    <button
+                                                        className="btn btn-success"
+                                                        onClick={() => {
+                                                            const table =
+                                                                $(
+                                                                    "#historico-table"
+                                                                ).DataTable();
+                                                            table
+                                                                .button(
+                                                                    ".buttons-excel"
+                                                                )
+                                                                .trigger();
+                                                        }}
+                                                    >
+                                                        Exportar a Excel
+                                                    </button>
+                                                </div>
                                                 <DataTable
+                                                    id="historico-table"
                                                     data={historico}
                                                     options={{
                                                         language,
                                                         autoWidth: false,
+                                                        buttons: [
+                                                            {
+                                                                extend: "excel",
+                                                                exportOptions: {
+                                                                    columns: [
+                                                                        1, 2, 3,
+                                                                        4, 5,
+                                                                    ], // exporta solo las primeras 8 columnas
+                                                                },
+                                                            },
+                                                        ],
                                                     }}
                                                     columns={[
                                                         {
@@ -269,6 +353,18 @@ export default function Recepcion({ oficios }: { oficios: [] }) {
                                                             data: "proceso",
                                                             width: "15%",
                                                             title: "Acciones",
+                                                        },
+                                                        {
+                                                            data: "descripcion",
+                                                            title: "Descripción",
+                                                            visible: false,
+                                                            searchable: true,
+                                                        },
+                                                        {
+                                                            data: "asunto",
+                                                            title: "Respuesta",
+                                                            visible: false,
+                                                            searchable: true,
                                                         },
                                                     ]}
                                                     className="display table-bordered  border-bottom ancho100"
@@ -362,6 +458,152 @@ export default function Recepcion({ oficios }: { oficios: [] }) {
                                                                 >
                                                                     <i className="fa fa-history"></i>
                                                                 </Button>
+                                                            </div>
+                                                        ),
+                                                    }}
+                                                ></DataTable>
+                                            </Col>
+                                        </Tab>
+                                        <Tab
+                                            eventKey="tab5"
+                                            title="Oficios VD Histórico"
+                                        >
+                                            <Col
+                                                md={12}
+                                                className="table-responsive"
+                                            >
+                                                <div className="mb-3 d-flex justify-content-end">
+                                                    <button
+                                                        className="btn btn-success"
+                                                        onClick={() => {
+                                                            const table =
+                                                                $(
+                                                                    "#historicoVd-table"
+                                                                ).DataTable();
+                                                            table
+                                                                .button(
+                                                                    ".buttons-excel"
+                                                                )
+                                                                .trigger();
+                                                        }}
+                                                    >
+                                                        Exportar a Excel
+                                                    </button>
+                                                </div>
+                                                <DataTable
+                                                    data={nuevoHistorico}
+                                                    options={{
+                                                        language,
+                                                        autoWidth: false,
+                                                        buttons: [
+                                                            {
+                                                                extend: "excel",
+                                                                exportOptions: {
+                                                                    columns: [
+                                                                        1, 2, 3,
+                                                                    ], // exporta solo las primeras 8 columnas
+                                                                },
+                                                            },
+                                                        ],
+                                                    }}
+                                                    id="historicoVd-table"
+                                                    columns={[
+                                                        {
+                                                            data: "f_ingreso",
+                                                            title: "Fecha de creación",
+                                                            width: "10%",
+                                                        },
+                                                        {
+                                                            data: "oficio_respuesta",
+                                                            title: "Num Folio/Oficio",
+                                                            width: "10%",
+                                                        },
+                                                        {
+                                                            data: "area",
+                                                            title: "Área",
+                                                            width: "10%",
+                                                        },
+                                                        {
+                                                            data: "nombre_desti",
+                                                            title: "Destinatario",
+                                                            width: "10%",
+                                                        },
+                                                        {
+                                                            data: "id",
+                                                            width: "15%",
+                                                            title: "Acciones",
+                                                        },
+                                                        {
+                                                            data: "respuesta",
+                                                            title: "Respuesta",
+                                                            visible: false,
+                                                            searchable: true,
+                                                        },
+                                                    ]}
+                                                    className="display table-bordered  border-bottom ancho100"
+                                                    slots={{
+                                                        4: (
+                                                            data: any,
+                                                            row: any
+                                                        ) => (
+                                                            <div className="text-center">
+                                                                {row.masivo ==
+                                                                1 ? (
+                                                                    <Button
+                                                                        className="btn-icon btn btn-warning mr-1"
+                                                                        variant="danger"
+                                                                        title="Ver confirmación de recibido"
+                                                                        onClick={() => {
+                                                                            setVariables(
+                                                                                {
+                                                                                    ...variables,
+                                                                                    urlPdf: row.archivo_respuesta,
+                                                                                    extension:
+                                                                                        row.extension,
+                                                                                }
+                                                                            );
+                                                                            setShow(
+                                                                                true
+                                                                            );
+                                                                        }}
+                                                                    >
+                                                                        <i className="fa fa-file-pdf-o"></i>
+                                                                    </Button>
+                                                                ) : (
+                                                                    <Link
+                                                                        href={route(
+                                                                            "oficios.confirmaRecibidosNuevos",
+                                                                            {
+                                                                                id: row.id,
+                                                                            }
+                                                                        )}
+                                                                    >
+                                                                        <Button
+                                                                            className="btn-icon btn btn-warning mr-1"
+                                                                            variant="warning"
+                                                                            title="Confirmaciones de recibido"
+                                                                        >
+                                                                            <i className="fa fa-handshake-o"></i>{" "}
+                                                                        </Button>
+                                                                    </Link>
+                                                                )}
+
+                                                                <Link
+                                                                    href={route(
+                                                                        "oficios.detalleNuevo",
+                                                                        {
+                                                                            id: row.id,
+                                                                        }
+                                                                    )}
+                                                                >
+                                                                    <Button
+                                                                        className="btn-icon "
+                                                                        variant="danger"
+                                                                        title="Ver detalle del oficio"
+                                                                    >
+                                                                        <i className="fa fa-eye"></i>
+                                                                    </Button>
+                                                                </Link>
                                                             </div>
                                                         ),
                                                     }}

@@ -20,15 +20,17 @@ import VerPdf from "@/types/VerPdf";
 import { Head } from "@inertiajs/react";
 import Swal from "sweetalert2";
 import InputError from "../InputError";
+import DatePicker from "react-datepicker";
+import { Fecha } from "../../commondata/Fecha";
+import "react-datepicker/dist/react-datepicker.css";
+import toast from "react-hot-toast";
 
 type FormIn = {
     id: number;
-    descripcion: string;
-    archivo: File | null;
-    enrutar: string;
+    fecha: string | null;
 };
 
-export default function FormOficio({
+export default function RevisaRespuesta({
     status,
     oficio,
     archivos,
@@ -39,41 +41,14 @@ export default function FormOficio({
 }) {
     const user = usePage().props.auth.user;
     const [show, setShow] = useState<boolean>(false);
-    const [show2, setShow2] = useState(false);
     const [show3, setShow3] = useState(false);
     const [pdf, setPdf] = useState("");
     const [tipo, setTipo] = useState("pdf");
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const formResponde = useForm<FormIn>({
-        id: 0,
-        descripcion: "",
-        archivo: null,
-        enrutar: "SI",
+    const formFecha = useForm<FormIn>({
+        id: oficio.id_respuesta,
+        fecha: oficio.fecha_respuesta || Fecha,
     });
-
-    const submitResp: FormEventHandler = (e) => {
-        e.preventDefault();
-        Swal.fire({
-            title: "¿Está seguro?",
-            text: "Una vez guardada la respuesta, esta no se podrá editar",
-            icon: "warning",
-            showDenyButton: true,
-            showCancelButton: false,
-            confirmButtonText: "Sí, estoy seguro",
-            denyButtonText: `Cancelar`,
-            customClass: {
-                container: "swalSuperior",
-            },
-        }).then((result) => {
-            /* Read more about isConfirmed, isDenied below */
-            if (result.isConfirmed) {
-                formResponde.post(route("respondeOFicio"));
-            } else {
-                formResponde.cancel();
-            }
-        });
-    };
 
     const formRechazo = useForm({
         id: 0,
@@ -102,6 +77,30 @@ export default function FormOficio({
         });
     };
 
+    const submitFecha: FormEventHandler = (e) => {
+        e.preventDefault();
+        formFecha.post(route("oficios.cambiaFecha"), {
+            onSuccess: (page) => {
+                toast(
+                    "Correcto: Se actualizo la fecha de respuesta del oficio.",
+                    {
+                        style: {
+                            padding: "25px",
+                            color: "#fff",
+                            backgroundColor: "#29bf74",
+                        },
+                        position: "top-center",
+                    }
+                );
+            },
+        });
+    };
+
+    function parseLocalDate(dateString: string): Date {
+        const [year, month, day] = dateString.split("-");
+        return new Date(Number(year), Number(month) - 1, Number(day));
+    }
+
     const autorizaResp = () => {
         Swal.fire({
             title: "¿Está seguro?",
@@ -116,13 +115,6 @@ export default function FormOficio({
                 router.put(route("oficios.aceptResp", { id: oficio.id }));
             }
         });
-    };
-
-    const handleChangeS = (e: any) => {
-        const target = e.target as HTMLInputElement;
-        if (target.files) {
-            formResponde.setData("archivo", target.files[0]);
-        }
     };
 
     const verArchivo = (url: string, tipo: number, extension: string) => {
@@ -164,15 +156,6 @@ export default function FormOficio({
                                 </Card.Title>
                             </Card.Header>
                             <Card.Body>
-                                {status && (
-                                    <Alert
-                                        variant="success"
-                                        className="alert-dismissible"
-                                    >
-                                        {status}
-                                    </Alert>
-                                )}
-
                                 <div className="form-row">
                                     <Col xl={4} md={6} className="mb-4">
                                         <Form.Group>
@@ -363,95 +346,154 @@ export default function FormOficio({
                                 </Card.Title>
                             </Card.Header>
                             <Card.Body>
-                                <div className="form-row">
-                                    <Col xs={12} style={{ padding: 40 }}>
-                                        <span
-                                            className="tag tag-radius tag-round tag-outline-danger"
-                                            onClick={() => {
-                                                setPdf(
-                                                    `imprime/pdf/0/${oficio.id}`
-                                                ),
-                                                    setTipo("pdf");
-                                                setShow(true);
-                                            }}
-                                        >
-                                            Click para ver archivo
-                                            <i
-                                                className="fa fa-file-pdf-o"
-                                                style={{ padding: 6 }}
-                                            ></i>
-                                        </span>
+                                {oficio.comentario !== null ? (
+                                    <Col xs={12} className="mb-5">
+                                        <Form.Label>
+                                            Breve descripción del rechazo por
+                                            parte de recepción documental:
+                                        </Form.Label>
+                                        <textarea
+                                            className="form-control"
+                                            value={oficio.comentario}
+                                            rows={3}
+                                            disabled
+                                        ></textarea>
                                     </Col>
+                                ) : null}
 
-                                    {archivos.length > 0 ? (
-                                        <>
-                                            <Col xs={12}>
-                                                <table className="table table-bordered table-hover table-striped">
-                                                    <thead>
-                                                        <tr>
-                                                            <th colSpan={2}>
-                                                                Archivos
-                                                                adjuntos
-                                                            </th>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>Nombre</th>
-                                                            <th>Ver</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {archivos.map((x) => {
-                                                            return (
-                                                                <tr key={x.id}>
-                                                                    <td>
-                                                                        {
-                                                                            x.nombre
+                                <Col xs={12} style={{ padding: 40 }}>
+                                    <span
+                                        className="tag tag-radius tag-round tag-outline-danger"
+                                        onClick={() => {
+                                            setPdf(
+                                                `imprime/pdf/0/${oficio.id}`
+                                            ),
+                                                setTipo("pdf");
+                                            setShow(true);
+                                        }}
+                                    >
+                                        Click para ver archivo
+                                        <i
+                                            className="fa fa-file-pdf-o"
+                                            style={{ padding: 6 }}
+                                        ></i>
+                                    </span>
+                                </Col>
+
+                                {archivos.length > 0 ? (
+                                    <>
+                                        <Col xs={12}>
+                                            <table className="table table-bordered table-hover table-striped">
+                                                <thead>
+                                                    <tr>
+                                                        <th colSpan={2}>
+                                                            Archivos adjuntos
+                                                        </th>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>Nombre</th>
+                                                        <th>Ver</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {archivos.map((x) => {
+                                                        return (
+                                                            <tr key={x.id}>
+                                                                <td>
+                                                                    {x.nombre}
+                                                                </td>
+                                                                <td>
+                                                                    <Button
+                                                                        className="btn-icon ml-1"
+                                                                        variant="danger"
+                                                                        title="Ver PDF del oficio"
+                                                                        onClick={() =>
+                                                                            verArchivo(
+                                                                                x.url,
+                                                                                x.tipo,
+                                                                                x.extension
+                                                                            )
                                                                         }
-                                                                    </td>
-                                                                    <td>
-                                                                        <Button
-                                                                            className="btn-icon ml-1"
-                                                                            variant="danger"
-                                                                            title="Ver PDF del oficio"
-                                                                            onClick={() =>
-                                                                                verArchivo(
-                                                                                    x.url,
-                                                                                    x.tipo,
-                                                                                    x.extension
-                                                                                )
-                                                                            }
-                                                                        >
-                                                                            <i className="fa fa-eye"></i>
-                                                                        </Button>
-                                                                    </td>
-                                                                </tr>
-                                                            );
-                                                        })}
-                                                    </tbody>
-                                                </table>
-                                            </Col>
-                                            <Col
-                                                xs={12}
-                                                className="mb-5 d-flex justify-content-end"
+                                                                    >
+                                                                        <i className="fa fa-eye"></i>
+                                                                    </Button>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </Col>
+                                        <Col
+                                            xs={12}
+                                            className="mb-5 d-flex justify-content-end"
+                                        >
+                                            <a
+                                                href={route(
+                                                    "oficios.downloadFiles",
+                                                    {
+                                                        id: oficio.id,
+                                                    }
+                                                )}
+                                                target="_BLANK"
+                                                className="btn btn-warning btn-lg mb-1"
                                             >
-                                                <a
-                                                    href={route(
-                                                        "oficios.downloadFiles",
-                                                        {
-                                                            id: oficio.id,
-                                                        }
-                                                    )}
-                                                    target="_BLANK"
-                                                    className="btn btn-warning btn-lg mb-1"
-                                                >
-                                                    Descargar todos los archivos
-                                                    adjuntos&nbsp;&nbsp;
-                                                    <i className="fa fa-download"></i>
-                                                </a>
-                                            </Col>
-                                        </>
-                                    ) : null}
+                                                Descargar todos los archivos
+                                                adjuntos&nbsp;&nbsp;
+                                                <i className="fa fa-download"></i>
+                                            </a>
+                                        </Col>
+                                    </>
+                                ) : null}
 
+                                {user.rol == 5 ? (
+                                    <form onSubmit={submitFecha}>
+                                        <Col xs={4}>
+                                            <Form.Label>
+                                                Seleccione la fecha de respuesta
+                                                del oficio:
+                                            </Form.Label>
+                                            <DatePicker
+                                                className="form-control"
+                                                selected={
+                                                    formFecha.data.fecha
+                                                        ? parseLocalDate(
+                                                              formFecha.data
+                                                                  .fecha
+                                                          )
+                                                        : null
+                                                }
+                                                onChange={(date) => {
+                                                    if (date) {
+                                                        const yyyy =
+                                                            date.getFullYear();
+                                                        const mm = String(
+                                                            date.getMonth() + 1
+                                                        ).padStart(2, "0");
+                                                        const dd = String(
+                                                            date.getDate()
+                                                        ).padStart(2, "0");
+                                                        formFecha.setData(
+                                                            "fecha",
+                                                            `${yyyy}-${mm}-${dd}`
+                                                        );
+                                                    }
+                                                }}
+                                                dateFormat="yyyy-MM-dd"
+                                            />
+                                        </Col>
+                                        <Col xs={4} className="mt-5">
+                                            <Button
+                                                className="btn btn-success "
+                                                type="submit"
+                                            >
+                                                Guardar fecha
+                                            </Button>
+                                        </Col>
+                                        <Col xs={12} className="mb-5"></Col>
+                                    </form>
+                                ) : null}
+                                <div className="form-row">
                                     <Col
                                         xs={12}
                                         xl={6}
@@ -518,78 +560,6 @@ export default function FormOficio({
                     setShow={setShow}
                     tipo={tipo}
                 />
-
-                <Modal size="xl" show={show2} onHide={() => setShow2(false)}>
-                    <ModalHeader>
-                        <ModalTitle as="h5">Responder Oficio</ModalTitle>
-                    </ModalHeader>
-                    <form onSubmit={submitResp}>
-                        <ModalBody>
-                            <Row>
-                                <Col xs={12}>
-                                    <Form.Label>
-                                        Breve descripción de la solución:
-                                    </Form.Label>
-                                    <textarea
-                                        className={
-                                            formResponde.errors.descripcion
-                                                ? "form-control inputError"
-                                                : "form-control"
-                                        }
-                                        name="descripcion"
-                                        value={formResponde.data.descripcion}
-                                        onChange={(e) =>
-                                            formResponde.setData(
-                                                "descripcion",
-                                                e.target.value
-                                            )
-                                        }
-                                        placeholder="Máximo 1000 caracteres"
-                                        rows={2}
-                                    ></textarea>
-                                    <InputError
-                                        className="mt-1"
-                                        message={
-                                            formResponde.errors.descripcion
-                                        }
-                                    />
-                                </Col>
-                                <Col xs={12} sm={6} xl={4}>
-                                    <Form.Label>
-                                        Adjuntar archivo PDF
-                                    </Form.Label>
-                                    <Form.Control
-                                        type="file"
-                                        accept=".pdf"
-                                        className={
-                                            formResponde.errors.archivo
-                                                ? "inputError"
-                                                : ""
-                                        }
-                                        ref={fileInputRef}
-                                        onChange={(e) => handleChangeS(e)}
-                                    />
-
-                                    <InputError
-                                        className="mt-1"
-                                        message={formResponde.errors.archivo}
-                                    />
-                                </Col>
-                            </Row>
-                        </ModalBody>
-                        <ModalFooter>
-                            <Button
-                                variant="secondary"
-                                onClick={() => setShow2(false)}
-                            >
-                                Cancelar
-                            </Button>
-                            <Button variant="primary" type="submit">
-                                Responder oficio
-                            </Button>
-                        </ModalFooter>
-                    </form>
-                </Modal>
 
                 <Modal show={show3} onHide={() => setShow3(false)}>
                     <ModalHeader>

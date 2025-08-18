@@ -40,20 +40,24 @@ Route::middleware('auth')->group(function () {
 
     
     // Oficio VD
+    Route::get('/oficios/get/archivos-adjuntos/{id}/{tipo}', [OficioController::class, 'getArchivosAdjuntos'])->name('oficios.getArchivosAdjuntos');
     Route::get('/oficios/nuevo-oficio/{id}', [NuevoController::class, 'index'])->name('nuevoOficio');
     Route::get('/files/imprime/nuevo/pdf/{id}/{id_usuario}/{tipo}', [NuevoController::class,'exportapdf']);
     Route::post('/oficios/guarda/nuevo-oficio', [NuevoController::class, 'saveNuevo'])->name('saveNuevoOficio');
 
-    Route::get('/oficios/nuevo/descargar-archivos-adjuntos/{id}', [NuevoController::class, 'downloadFiles'])->name('oficios.downloadFilesNew');
+    Route::get('/oficios/nuevo/descargar-archivos-adjuntos/{id}/{tipo}', [NuevoController::class, 'downloadFiles'])->name('oficios.downloadFilesNew');
     Route::post('/oficios/nuevo/subir/archivos/{id}', [NuevoController::class, 'uploadFiles'])->name('oficios.uploadFilesNew');
     Route::delete('/oficios/nuevo/elimina/archivo', [NuevoController::class, 'deleteFile'])->name('oficio.deleteFile');
     Route::put('/oficios/nuevo/area/responde/{id}', [NuevoController::class, 'enviaOficio'])->name('enviaOficioNuevo');
-    Route::post('/oficios/nuevo/grupal', [NuevoController::class, 'saveGrupal'])->name('nuevo.oficio.grupal');
+    Route::post('/oficios/nuevo/grupal/{numero}', [NuevoController::class, 'saveGrupal'])->name('nuevo.oficio.grupal');
     Route::post('/oficios/guarda-nuevo-oficio/grupal', [NuevoController::class, 'saveNuevoOficioGrupal'])->name('saveNuevoOficioGrupal');
 
     Route::post('oficios/nuevo/guarda/destinatario', [NuevoController::class, 'saveDestinatario'])->name('oficios.saveDestinatarioNuevo');
     Route::delete('oficios/nuevo/elimina/destinatario/{id}', [NuevoController::class, 'deleteDestinatario'])->name('oficios.delDestinatario');
+    Route::get('/oficios/nuevo/detalle/{id}', [NuevoController::class, 'detalleOficio'])->name('oficios.detalleNuevo');
 
+    Route::get('/oficios/get/estatus/{valor}/{tipo}', [OficioController::class, 'getEstatus'])->name('oficios.getEstatus');
+    Route::get('/oficios/nuevo/confirmaciones-de-recibido/{id}', [NuevoController::class, 'subeConfirmacionRecibidos'])->name('oficios.confirmaRecibidosNuevos');
 
     // Catalogos
     Route::get('/catalogos/destinatarios-externos', [CatalogosController::class, 'indexExternos'])->name('catalogos.destinatariosExternos');
@@ -69,6 +73,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/oficios/recepcion-oficio',  [RecepcionController::class, 'altaOficio'])->name('oficios.recepcionOficio');
         Route::get('/oficios/modifica-oficio/{id}', [RecepcionController::class, 'altaOficio'])->name('oficios.modificaOficio');
         Route::post('/oficios/recepcion-oficio/save',  [RecepcionController::class, 'save'])->name('saveOficio');
+
+        Route::post('oficios/recepcion/cargar/archivos/{id}', [RecepcionController::class, 'uploadFiles'])->name('oficios.uploadFilesRecepcion');
+        Route::delete('oficios/recepcion/elimina/archivo', [RecepcionController::class, 'deleteFile'])->name('oficios.deleteFileRecepcion');
     });
 
 
@@ -86,7 +93,7 @@ Route::middleware('auth')->group(function () {
     
     
     //Rutas Compartidas Jefe de area y colaborador
-    Route::middleware('RolCheck:1,3,4')->group(function () {
+    Route::middleware('RolCheck:1,3,4,6')->group(function () {
         //Oficios
         Route::get('/oficios/mis-oficios',  [OficioController::class, 'index'])->name('misOficios');
         Route::put('/oficios/area/responde/{id}', [OficioController::class, 'respOficio'])->name('respondeOFicio');
@@ -123,7 +130,9 @@ Route::middleware('auth')->group(function () {
         //Oficios
         Route::get('/oficios/respuestas', [OficioController::class, 'viewOficiosResp'])->name('oficiosRespuestas');        
         Route::post('/oficios/sube-evidencia-recibido', [OficioController::class, 'subeEvidenciaRecibido'])->name('subeEvidenciaRecibido');
-        Route::post('/oficios/nuevo/sube-evidencia-recibido', [NuevoController::class, 'subeEvidenciaRecibido'])->name('subeEvidenciaRecibidoNuevo');
+        Route::post('Oficios/actualiza-fecha', [OficioController::class, 'actualizaFecha'])->name('oficios.cambiaFecha');
+        Route::post('/oficios/nuevo/actualiza-fecha', [NuevoController::class, 'actualizaFecha'])->name('oficios.cambiaFechaNuevo');
+
     });
 
 

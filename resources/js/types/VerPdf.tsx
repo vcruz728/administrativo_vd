@@ -28,6 +28,8 @@ const VerPdf = ({
         }
     });
 
+    console.log(getFullUrl(`/files/${urlPdf}`));
+
     return (
         <Offcanvas
             show={show}
@@ -44,6 +46,24 @@ const VerPdf = ({
                 >
                     Descargar archivo PDF
                 </a>
+
+                <button
+                    className="btn btn-primary ms-2"
+                    onClick={() => {
+                        const printWindow = window.open(
+                            `${getFullUrl(`/files/${urlPdf}`)}`,
+                            "_blank"
+                        );
+                        if (printWindow) {
+                            printWindow.onload = function () {
+                                printWindow.focus();
+                                printWindow.print();
+                            };
+                        }
+                    }}
+                >
+                    Imprimir PDF
+                </button>
                 <Offcanvas.Title></Offcanvas.Title>
                 <span className="d-flex ms-auto" onClick={() => setShow(false)}>
                     <i className="fe fe-x ms-auto"></i>

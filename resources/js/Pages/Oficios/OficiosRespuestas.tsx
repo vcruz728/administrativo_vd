@@ -16,15 +16,25 @@ import {
     Tab,
     Tabs,
 } from "react-bootstrap";
-import $ from "jquery";
-import DataTable from "datatables.net-react";
-import DT from "datatables.net-bs5";
 // @ts-ignore
 import language from "datatables.net-plugins/i18n/es-MX.mjs";
 import InputError from "../InputError";
 import toast from "react-hot-toast";
 import VerPdf from "@/types/VerPdf";
 import LineaTiempo from "@/types/LineaTiempo";
+
+import $ from "jquery";
+import DataTable from "datatables.net-react";
+import DT from "datatables.net-bs5";
+
+// Importa JSZip y asigna a window si es necesario
+import JSZip from "jszip";
+// @ts-ignore
+window.JSZip = JSZip;
+
+// Importa los botones de DataTables
+import "datatables.net-buttons-bs5";
+import "datatables.net-buttons/js/buttons.html5.js";
 
 DataTable.use(DT);
 
@@ -55,6 +65,8 @@ const OficiosRespuestas = ({
     const [activos, setActivos] = useState<any[]>();
     const [historico, setHistorico] = useState<any[]>();
     const [informativos, setInformativos] = useState<any[]>();
+    const [nuevoOfi, setNuevoOfi] = useState<any[]>();
+    const [nuevoHistorico, setNuevoHistorico] = useState<any[]>();
 
     useEffect(() => {
         setActivos(
@@ -87,6 +99,23 @@ const OficiosRespuestas = ({
         );
     }, [oficios]);
 
+    useEffect(() => {
+        setNuevoOfi(
+            (nuevos || [])
+                .filter((item: any) => item.archivo_respuesta === null)
+                .map((file: any) => ({
+                    ...file,
+                }))
+        );
+        setNuevoHistorico(
+            (nuevos || [])
+                .filter((item: any) => item.archivo_respuesta !== null)
+                .map((file: any) => ({
+                    ...file,
+                }))
+        );
+    }, [nuevos]);
+
     const form = useForm<FormIn>({
         id: 0,
         archivo: null,
@@ -95,7 +124,6 @@ const OficiosRespuestas = ({
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
-        // subeEvidenciaRecibidoNuevo
         form.post(route("subeEvidenciaRecibido"), {
             onSuccess: clearForm,
         });
@@ -126,6 +154,49 @@ const OficiosRespuestas = ({
             },
             position: "top-center",
         });
+    };
+
+    const filtroTabla = async (valor: string, tipo: string) => {
+        const response = await fetch(
+            route("oficios.getEstatus", {
+                valor: valor,
+                tipo: tipo,
+            }),
+            {
+                method: "get",
+            }
+        );
+
+        const datos = await response.json();
+
+        switch (tipo) {
+            case "activos":
+                setActivos(
+                    (datos.data || [])
+                        .filter(
+                            (item: any) =>
+                                item.archivo_respuesta === null &&
+                                item.id_area !== "1"
+                        )
+                        .map((file: any) => ({
+                            ...file,
+                        }))
+                );
+                break;
+            case "historico_vd":
+                setHistorico(
+                    (datos.data || [])
+                        .filter(
+                            (item: any) =>
+                                item.archivo_respuesta !== null &&
+                                item.id_area !== "1"
+                        )
+                        .map((file: any) => ({
+                            ...file,
+                        }))
+                );
+                break;
+        }
     };
 
     return (
@@ -177,11 +248,88 @@ const OficiosRespuestas = ({
                                                 md={12}
                                                 className="table-responsive"
                                             >
+                                                <div className="mb-3 d-flex justify-content-between">
+                                                    <div
+                                                        style={{ width: "20%" }}
+                                                    >
+                                                        <div
+                                                            className="form-group"
+                                                            style={{
+                                                                margin: 0,
+                                                            }}
+                                                        >
+                                                            <select
+                                                                className="form-control"
+                                                                onChange={(e) =>
+                                                                    filtroTabla(
+                                                                        e.target
+                                                                            .value,
+                                                                        "activos"
+                                                                    )
+                                                                }
+                                                            >
+                                                                <option value="0">
+                                                                    Todos
+                                                                </option>
+                                                                <option value="1">
+                                                                    Se dio
+                                                                    respuesta en
+                                                                    tiempo
+                                                                </option>
+                                                                <option value="2">
+                                                                    Sin
+                                                                    respuesta,
+                                                                    en tiempo
+                                                                </option>
+                                                                <option value="3">
+                                                                    Sin
+                                                                    respuesta,
+                                                                    fuera de
+                                                                    tiempo
+                                                                </option>
+                                                                <option value="4">
+                                                                    Se dio
+                                                                    respuesta
+                                                                    fuera de
+                                                                    tiempo
+                                                                </option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        className="btn btn-success"
+                                                        onClick={() => {
+                                                            const table =
+                                                                $(
+                                                                    "#activos-table"
+                                                                ).DataTable();
+                                                            table
+                                                                .button(
+                                                                    ".buttons-excel"
+                                                                )
+                                                                .trigger();
+                                                        }}
+                                                    >
+                                                        Exportar a Excel
+                                                    </button>
+                                                </div>
                                                 <DataTable
+                                                    id="activos-table"
                                                     data={activos}
                                                     options={{
                                                         language,
                                                         autoWidth: false,
+                                                        buttons: [
+                                                            {
+                                                                extend: "excel",
+                                                                exportOptions: {
+                                                                    columns: [
+                                                                        1, 2, 3,
+                                                                        4, 5,
+                                                                    ], // exporta solo las primeras 8 columnas
+                                                                },
+                                                            },
+                                                        ],
                                                     }}
                                                     columns={[
                                                         {
@@ -235,6 +383,12 @@ const OficiosRespuestas = ({
                                                             data: "proceso",
                                                             width: "15%",
                                                             title: "Acciones",
+                                                        },
+                                                        {
+                                                            data: "asunto",
+                                                            title: "Respuesta",
+                                                            visible: false,
+                                                            searchable: true,
                                                         },
                                                     ]}
                                                     className="display table-bordered  border-bottom ancho100"
@@ -295,11 +449,77 @@ const OficiosRespuestas = ({
                                                 md={12}
                                                 className="table-responsive"
                                             >
+                                                <div className="mb-3 d-flex justify-content-between">
+                                                    <div
+                                                        style={{ width: "20%" }}
+                                                    >
+                                                        <div
+                                                            className="form-group"
+                                                            style={{
+                                                                margin: 0,
+                                                            }}
+                                                        >
+                                                            <select
+                                                                className="form-control"
+                                                                onChange={(e) =>
+                                                                    filtroTabla(
+                                                                        e.target
+                                                                            .value,
+                                                                        "historico_vd"
+                                                                    )
+                                                                }
+                                                            >
+                                                                <option value="0">
+                                                                    Todos
+                                                                </option>
+                                                                <option value="1">
+                                                                    Se dio
+                                                                    respuesta en
+                                                                    tiempo
+                                                                </option>
+                                                                <option value="4">
+                                                                    Se dio
+                                                                    respuesta
+                                                                    fuera de
+                                                                    tiempo
+                                                                </option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        className="btn btn-success"
+                                                        onClick={() => {
+                                                            const table =
+                                                                $(
+                                                                    "#historico-table"
+                                                                ).DataTable();
+                                                            table
+                                                                .button(
+                                                                    ".buttons-excel"
+                                                                )
+                                                                .trigger();
+                                                        }}
+                                                    >
+                                                        Exportar a Excel
+                                                    </button>
+                                                </div>
                                                 <DataTable
+                                                    id="historico-table"
                                                     data={historico}
                                                     options={{
                                                         language,
                                                         autoWidth: false,
+                                                        buttons: [
+                                                            {
+                                                                extend: "excel",
+                                                                exportOptions: {
+                                                                    columns: [
+                                                                        1, 2, 3,
+                                                                        4, 5,
+                                                                    ], // exporta solo las primeras 8 columnas
+                                                                },
+                                                            },
+                                                        ],
                                                     }}
                                                     columns={[
                                                         {
@@ -353,6 +573,12 @@ const OficiosRespuestas = ({
                                                             data: "proceso",
                                                             width: "15%",
                                                             title: "Acciones",
+                                                        },
+                                                        {
+                                                            data: "asunto",
+                                                            title: "Respuesta",
+                                                            visible: false,
+                                                            searchable: true,
                                                         },
                                                     ]}
                                                     className="display table-bordered  border-bottom ancho100"
@@ -527,16 +753,245 @@ const OficiosRespuestas = ({
                                                 md={12}
                                                 className="table-responsive"
                                             >
+                                                <div className="mb-3 d-flex justify-content-end">
+                                                    <button
+                                                        className="btn btn-success"
+                                                        onClick={() => {
+                                                            const table =
+                                                                $(
+                                                                    "#vd-table"
+                                                                ).DataTable();
+                                                            table
+                                                                .button(
+                                                                    ".buttons-excel"
+                                                                )
+                                                                .trigger();
+                                                        }}
+                                                    >
+                                                        Exportar a Excel
+                                                    </button>
+                                                </div>
                                                 <DataTable
-                                                    data={nuevos}
+                                                    id="vd-table"
+                                                    data={nuevoOfi}
                                                     options={{
                                                         language,
                                                         autoWidth: false,
+                                                        buttons: [
+                                                            {
+                                                                extend: "excel",
+                                                                exportOptions: {
+                                                                    columns: [
+                                                                        0, 1, 2,
+                                                                        3,
+                                                                    ], // exporta solo las primeras 8 columnas
+                                                                },
+                                                            },
+                                                        ],
                                                     }}
                                                     columns={[
                                                         {
                                                             data: "f_ingreso",
                                                             title: "Fecha de creación",
+                                                            width: "10%",
+                                                        },
+                                                        {
+                                                            data: "oficio_respuesta",
+                                                            title: "Num Folio/Oficio",
+                                                            width: "10%",
+                                                        },
+                                                        {
+                                                            data: "area",
+                                                            title: "Área",
+                                                            width: "10%",
+                                                        },
+                                                        {
+                                                            data: "nombre_desti",
+                                                            title: "Destinatario",
+                                                            width: "10%",
+                                                        },
+                                                        {
+                                                            data: "id",
+                                                            width: "15%",
+                                                            title: "Acciones",
+                                                        },
+                                                        {
+                                                            data: "respuesta",
+                                                            title: "Respuesta",
+                                                            visible: false,
+                                                            searchable: true,
+                                                        },
+                                                    ]}
+                                                    className="display table-bordered  border-bottom ancho100"
+                                                    slots={{
+                                                        4: (
+                                                            data: any,
+                                                            row: any
+                                                        ) => (
+                                                            <div className="text-center">
+                                                                {row.masivo ==
+                                                                1 ? (
+                                                                    row.enviado ===
+                                                                    1 ? (
+                                                                        row.archivo_respuesta ===
+                                                                        null ? (
+                                                                            <Button
+                                                                                className="btn-icon btn btn-warning mr-1"
+                                                                                variant="warning"
+                                                                                title="Subir confirmación de recibido"
+                                                                                onClick={() => {
+                                                                                    form.clearErrors();
+                                                                                    form.setData(
+                                                                                        {
+                                                                                            ...data,
+                                                                                            id: row.id,
+                                                                                            tipo: "nuevo",
+                                                                                        }
+                                                                                    );
+                                                                                    setShow(
+                                                                                        true
+                                                                                    );
+                                                                                }}
+                                                                            >
+                                                                                <i className="fa fa-upload"></i>
+                                                                            </Button>
+                                                                        ) : (
+                                                                            <Button
+                                                                                className="btn-icon btn btn-warning mr-1"
+                                                                                variant="danger"
+                                                                                title="Ver confirmación de recibido"
+                                                                                onClick={() => {
+                                                                                    setVariables(
+                                                                                        {
+                                                                                            ...variables,
+                                                                                            urlPdf: row.archivo_respuesta,
+                                                                                            extension:
+                                                                                                row.extension,
+                                                                                        }
+                                                                                    );
+                                                                                    setShowDos(
+                                                                                        true
+                                                                                    );
+                                                                                }}
+                                                                            >
+                                                                                <i className="fa fa-file-pdf-o"></i>
+                                                                            </Button>
+                                                                        )
+                                                                    ) : null
+                                                                ) : row.enviado ===
+                                                                  1 ? (
+                                                                    <Link
+                                                                        href={route(
+                                                                            "oficios.confirmaRecibidosNuevos",
+                                                                            {
+                                                                                id: row.id,
+                                                                            }
+                                                                        )}
+                                                                    >
+                                                                        <Button
+                                                                            className="btn-icon btn btn-warning mr-1"
+                                                                            variant="warning"
+                                                                            title="Confirmaciones de recibido"
+                                                                        >
+                                                                            <i className="fa fa-handshake-o"></i>{" "}
+                                                                        </Button>
+                                                                    </Link>
+                                                                ) : null}
+
+                                                                {row.enviado ===
+                                                                null ? (
+                                                                    <Link
+                                                                        href={route(
+                                                                            "viewRespNuevoOficio",
+                                                                            {
+                                                                                id: row.id,
+                                                                            }
+                                                                        )}
+                                                                    >
+                                                                        <Button
+                                                                            className="btn-icon btn btn-warning mr-1"
+                                                                            variant="primary"
+                                                                            title="Revisar respuesta"
+                                                                        >
+                                                                            <i className="zmdi zmdi-pin-account"></i>{" "}
+                                                                        </Button>
+                                                                    </Link>
+                                                                ) : null}
+
+                                                                <Link
+                                                                    href={route(
+                                                                        "oficios.detalleNuevo",
+                                                                        {
+                                                                            id: row.id,
+                                                                        }
+                                                                    )}
+                                                                >
+                                                                    <Button
+                                                                        className="btn-icon "
+                                                                        variant="danger"
+                                                                        title="Ver detalle del oficio"
+                                                                    >
+                                                                        <i className="fa fa-eye"></i>
+                                                                    </Button>
+                                                                </Link>
+                                                            </div>
+                                                        ),
+                                                    }}
+                                                ></DataTable>
+                                            </Col>
+                                        </Tab>
+                                        <Tab
+                                            eventKey="tab5"
+                                            title="Oficios VD Histórico"
+                                        >
+                                            <Col
+                                                md={12}
+                                                className="table-responsive"
+                                            >
+                                                <div className="mb-3 d-flex justify-content-end">
+                                                    <button
+                                                        className="btn btn-success"
+                                                        onClick={() => {
+                                                            const table = $(
+                                                                "#vd-historico-table"
+                                                            ).DataTable();
+                                                            table
+                                                                .button(
+                                                                    ".buttons-excel"
+                                                                )
+                                                                .trigger();
+                                                        }}
+                                                    >
+                                                        Exportar a Excel
+                                                    </button>
+                                                </div>
+                                                <DataTable
+                                                    id="vd-historico-table"
+                                                    data={nuevoHistorico}
+                                                    options={{
+                                                        language,
+                                                        autoWidth: false,
+                                                        buttons: [
+                                                            {
+                                                                extend: "excel",
+                                                                exportOptions: {
+                                                                    columns: [
+                                                                        0, 1, 2,
+                                                                        3,
+                                                                    ], // exporta solo las primeras 8 columnas
+                                                                },
+                                                            },
+                                                        ],
+                                                    }}
+                                                    columns={[
+                                                        {
+                                                            data: "f_ingreso",
+                                                            title: "Fecha de creación",
+                                                            width: "10%",
+                                                        },
+                                                        {
+                                                            data: "oficio_respuesta",
+                                                            title: "Num Folio/Oficio",
                                                             width: "10%",
                                                         },
                                                         {
@@ -554,65 +1009,46 @@ const OficiosRespuestas = ({
                                                             width: "15%",
                                                             title: "Acciones",
                                                         },
+                                                        {
+                                                            data: "respuesta",
+                                                            title: "Respuesta",
+                                                            visible: false,
+                                                            searchable: true,
+                                                        },
                                                     ]}
                                                     className="display table-bordered  border-bottom ancho100"
                                                     slots={{
-                                                        3: (
+                                                        4: (
                                                             data: any,
                                                             row: any
                                                         ) => (
                                                             <div className="text-center">
-                                                                {row.enviado ===
+                                                                {row.masivo ==
                                                                 1 ? (
-                                                                    row.archivo_respuesta ===
-                                                                    null ? (
-                                                                        <Button
-                                                                            className="btn-icon btn btn-warning mr-1"
-                                                                            variant="warning"
-                                                                            title="Subir confirmación de recibido"
-                                                                            onClick={() => {
-                                                                                form.clearErrors();
-                                                                                form.setData(
-                                                                                    {
-                                                                                        ...data,
-                                                                                        id: row.id,
-                                                                                        tipo: "nuevo",
-                                                                                    }
-                                                                                );
-                                                                                setShow(
-                                                                                    true
-                                                                                );
-                                                                            }}
-                                                                        >
-                                                                            <i className="fa fa-upload"></i>
-                                                                        </Button>
-                                                                    ) : (
-                                                                        <Button
-                                                                            className="btn-icon btn btn-warning mr-1"
-                                                                            variant="danger"
-                                                                            title="Ver confirmación de recibido"
-                                                                            onClick={() => {
-                                                                                setVariables(
-                                                                                    {
-                                                                                        ...variables,
-                                                                                        urlPdf: row.archivo_respuesta,
-                                                                                        extension:
-                                                                                            row.extension,
-                                                                                    }
-                                                                                );
-                                                                                setShowDos(
-                                                                                    true
-                                                                                );
-                                                                            }}
-                                                                        >
-                                                                            <i className="fa fa-file-pdf-o"></i>
-                                                                        </Button>
-                                                                    )
-                                                                ) : row.finalizado ===
-                                                                  null ? null : (
+                                                                    <Button
+                                                                        className="btn-icon btn btn-warning mr-1"
+                                                                        variant="danger"
+                                                                        title="Ver confirmación de recibido"
+                                                                        onClick={() => {
+                                                                            setVariables(
+                                                                                {
+                                                                                    ...variables,
+                                                                                    urlPdf: row.archivo_respuesta,
+                                                                                    extension:
+                                                                                        row.extension,
+                                                                                }
+                                                                            );
+                                                                            setShowDos(
+                                                                                true
+                                                                            );
+                                                                        }}
+                                                                    >
+                                                                        <i className="fa fa-file-pdf-o"></i>
+                                                                    </Button>
+                                                                ) : (
                                                                     <Link
                                                                         href={route(
-                                                                            "viewRespNuevoOficio",
+                                                                            "oficios.confirmaRecibidosNuevos",
                                                                             {
                                                                                 id: row.id,
                                                                             }
@@ -620,35 +1056,30 @@ const OficiosRespuestas = ({
                                                                     >
                                                                         <Button
                                                                             className="btn-icon btn btn-warning mr-1"
-                                                                            variant="primary"
-                                                                            title="Revisar respuesta"
+                                                                            variant="warning"
+                                                                            title="Confirmaciones de recibido"
                                                                         >
-                                                                            <i className="zmdi zmdi-pin-account"></i>{" "}
+                                                                            <i className="fa fa-handshake-o"></i>{" "}
                                                                         </Button>
                                                                     </Link>
                                                                 )}
 
-                                                                <Button
-                                                                    className="btn-icon "
-                                                                    variant="danger"
-                                                                    title="Ver PDF del oficio"
-                                                                    onClick={() => {
-                                                                        setVariables(
-                                                                            {
-                                                                                ...variables,
-                                                                                urlPdf: `imprime/nuevo/pdf/${row.id}`,
-                                                                                extension:
-                                                                                    "pdf",
-                                                                            }
-                                                                        );
-
-                                                                        setShowDos(
-                                                                            true
-                                                                        );
-                                                                    }}
+                                                                <Link
+                                                                    href={route(
+                                                                        "oficios.detalleNuevo",
+                                                                        {
+                                                                            id: row.id,
+                                                                        }
+                                                                    )}
                                                                 >
-                                                                    <i className="fa fa-eye"></i>
-                                                                </Button>
+                                                                    <Button
+                                                                        className="btn-icon "
+                                                                        variant="danger"
+                                                                        title="Ver detalle del oficio"
+                                                                    >
+                                                                        <i className="fa fa-eye"></i>
+                                                                    </Button>
+                                                                </Link>
                                                             </div>
                                                         ),
                                                     }}

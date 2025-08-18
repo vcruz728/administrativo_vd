@@ -1,7 +1,18 @@
 import AppLayout from "../../Layouts/app";
 import { Head, router, useForm, usePage } from "@inertiajs/react";
 import { FormEventHandler, Fragment, useEffect, useRef, useState } from "react";
-import { Card, Row, Col, Form } from "react-bootstrap";
+import {
+    Card,
+    Row,
+    Col,
+    Form,
+    Modal,
+    ModalHeader,
+    ModalTitle,
+    ModalBody,
+    ModalFooter,
+    Button,
+} from "react-bootstrap";
 import PageHeader from "../../Layouts/layoutcomponents/pageHeader";
 import TituloCard from "@/types/TituloCard";
 import { SelectInstance } from "react-select";
@@ -22,6 +33,12 @@ import "filepond/dist/filepond.min.css";
 import "filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css";
 import "filepond-plugin-file-poster/dist/filepond-plugin-file-poster.css";
 registerPlugin(FilePondPluginFilePoster, FilePondPluginImagePreview);
+import DataTable from "datatables.net-react";
+import DT from "datatables.net-bs5";
+// @ts-ignore
+import language from "datatables.net-plugins/i18n/es-MX.mjs";
+
+DataTable.use(DT);
 
 export default function Recepcion({
     status,
@@ -66,6 +83,8 @@ export default function Recepcion({
     );
     const [destinatarios, setDestinatarios] = useState<any[]>([]);
     const [showDos, setShowDos] = useState(false);
+    const [show3, setShow3] = useState(false);
+    const [archivos, setArchivos] = useState([]);
 
     useEffect(() => {
         if (
@@ -121,6 +140,7 @@ export default function Recepcion({
         dependenciaDos: respuesta?.dependencia,
         dirigido_aDos: respuesta?.id_directorio,
         asunto: respuesta?.respuesta || htmlWithTableImages,
+        comentario: respuesta?.comentario,
     });
 
     const submit: FormEventHandler = (e) => {
@@ -220,6 +240,36 @@ export default function Recepcion({
         return "";
     }
 
+    const verArchivosAdjuntos = async () => {
+        const response = await fetch(
+            route("oficios.getArchivosAdjuntos", {
+                id: oficio.id,
+                tipo: "id_oficio_inicial",
+            }),
+            {
+                method: "get",
+            }
+        );
+
+        const datos = await response.json();
+
+        setArchivos(datos.data);
+        setShow3(true);
+    };
+
+    const verArchivo = (url: string, tipo: number, extension: string) => {
+        if (tipo == 1) {
+            setVariables({
+                ...variables,
+                urlPdf: url,
+                extension: extension,
+            });
+            setShowDos(true);
+        } else {
+            window.open(url, "_blank");
+        }
+    };
+
     return (
         <AppLayout>
             <Head>
@@ -250,13 +300,38 @@ export default function Recepcion({
                                         obligatorio={true}
                                     />
                                 </Card.Title>
-                                <button
-                                    className="btn btn-success mb-3"
-                                    onClick={() => setShow(true)}
-                                    style={{ margin: "0 !important" }}
-                                >
-                                    Ver pdf
-                                </button>
+                                <div>
+                                    <button
+                                        className="btn btn-warning btn-sm mb-3 mr-1"
+                                        onClick={() => verArchivosAdjuntos()}
+                                        style={{ margin: "0 !important" }}
+                                    >
+                                        Archivos Adjuntos
+                                    </button>
+
+                                    <button
+                                        className="btn btn-danger btn-sm mb-3 mr-1"
+                                        onClick={() => {
+                                            setVariables({
+                                                ...variables,
+                                                urlPdf: oficio.archivo,
+                                                extension: "pdf",
+                                            }),
+                                                setShowDos(true);
+                                        }}
+                                        style={{ margin: "0 !important" }}
+                                    >
+                                        Ver oficio inicial
+                                    </button>
+
+                                    <button
+                                        className="btn btn-success btn-sm mb-3"
+                                        onClick={() => setShow(true)}
+                                        style={{ margin: "0 !important" }}
+                                    >
+                                        Vista Previa
+                                    </button>
+                                </div>
                             </Card.Header>
                             <Card.Body>
                                 <Row>
@@ -475,7 +550,7 @@ export default function Recepcion({
                                                 respuesta del oficio
                                             </h4>
                                         </Col>
-                                        <Col xs={12}>
+                                        <Col xs={12} className="mb-5">
                                             <SunEditor
                                                 setContents={data.asunto}
                                                 onChange={(value) => {
@@ -484,6 +559,7 @@ export default function Recepcion({
                                                 setDefaultStyle="font-family: 'SourceSansPro'; font-size: 12px;"
                                                 setOptions={{
                                                     lang: sunEditorLangEs,
+
                                                     buttonList: [
                                                         ["undo", "redo"],
                                                         ["font", "fontSize"],
@@ -529,6 +605,25 @@ export default function Recepcion({
                                                 className="mt-1"
                                                 message={errors.asunto}
                                             />
+                                        </Col>
+
+                                        <Col xs={12} className="mb-5">
+                                            <Form.Label>
+                                                Ingrese un comentario referente
+                                                a la respuesta del oficio
+                                            </Form.Label>
+                                            <textarea
+                                                className="form-control"
+                                                value={data.comentario}
+                                                onChange={(e) =>
+                                                    setData(
+                                                        "comentario",
+                                                        e.target.value
+                                                    )
+                                                }
+                                                maxLength={1000}
+                                                rows={3}
+                                            ></textarea>
                                         </Col>
 
                                         <Col
@@ -843,6 +938,89 @@ export default function Recepcion({
                     tipo={variables.extension}
                     setShow={setShowDos}
                 />
+
+                <Modal size="xl" show={show3} onHide={() => setShow3(false)}>
+                    <ModalHeader>
+                        <ModalTitle as="h5">
+                            Archivos adjuntos del oficio
+                        </ModalTitle>
+                    </ModalHeader>
+                    <form onSubmit={submit}>
+                        <ModalBody>
+                            <Row>
+                                <Col xs={12}>
+                                    <DataTable
+                                        data={archivos}
+                                        options={{
+                                            language,
+                                            autoWidth: false,
+                                        }}
+                                        columns={[
+                                            {
+                                                data: "nombre",
+                                                title: "Archivo",
+                                            },
+
+                                            {
+                                                data: "id",
+                                                title: "Ver",
+                                            },
+                                        ]}
+                                        className="display table-bordered  border-bottom ancho100"
+                                        slots={{
+                                            1: (data: any, row: any) => (
+                                                <div className="text-center">
+                                                    <Button
+                                                        className="btn-icon ml-1"
+                                                        variant="danger"
+                                                        title="Ver archivo"
+                                                        onClick={() =>
+                                                            verArchivo(
+                                                                row.url,
+                                                                row.tipo,
+                                                                row.extension
+                                                            )
+                                                        }
+                                                    >
+                                                        <i className="fa fa-eye"></i>
+                                                    </Button>
+                                                </div>
+                                            ),
+                                        }}
+                                    ></DataTable>
+                                </Col>
+                                <Col
+                                    xs={12}
+                                    className="mb-5 mt-5 d-flex justify-content-end"
+                                >
+                                    <a
+                                        href={route(
+                                            "oficios.downloadFilesNew",
+                                            {
+                                                id: oficio.id,
+                                                tipo: "id_oficio_inicial",
+                                            }
+                                        )}
+                                        target="_BLANK"
+                                        className="btn btn-warning btn-lg mb-1"
+                                    >
+                                        Descargar todos los archivos
+                                        adjuntos&nbsp;&nbsp;
+                                        <i className="fa fa-download"></i>
+                                    </a>
+                                </Col>
+                            </Row>
+                        </ModalBody>
+                        <ModalFooter>
+                            <Button
+                                variant="secondary"
+                                onClick={() => setShow3(false)}
+                            >
+                                Cerrar
+                            </Button>
+                        </ModalFooter>
+                    </form>
+                </Modal>
             </Fragment>
         </AppLayout>
     );

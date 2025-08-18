@@ -9,6 +9,7 @@ use App\Models\Oficios\Copia;
 use App\Models\Oficios\ArchivoOficio;
 use App\Models\Oficios\RespuestaOficio;
 use App\Models\Oficios\Nuevo as NuevoOficio;
+use App\Models\Oficios\DestinatarioOficio;
 use App\Models\Catalogos\Des;
 use App\Models\Catalogos\Areas;
 use App\Models\Catalogos\Procesos;
@@ -34,6 +35,7 @@ class OficioController extends Controller
     public function index()
 	{
     	$where = "";
+		$whereDos = "";
     	if(\Auth::user()->rol == 3){
     		$where = " AND area = ".\Auth::user()->id_area;
 			$whereDos = " AND id_area = ".\Auth::user()->id_area." AND revision = 1";
@@ -45,10 +47,10 @@ class OficioController extends Controller
 
     	$oficios = Oficio::select(
     		DB::raw("CASE 
-			WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, fecha_respuesta, 120) ) < cat_areas.minutos_oficio AND fecha_respuesta IS NOT NULL THEN '#5fd710'
-			WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, getdate(), 120) ) < cat_areas.minutos_oficio AND fecha_respuesta IS NULL THEN '#f5f233'
-			WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, getdate(), 120) ) > cat_areas.minutos_oficio AND fecha_respuesta IS NULL THEN '#f98200'
-			WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, fecha_respuesta, 120) ) > cat_areas.minutos_oficio AND fecha_respuesta IS NOT NULL THEN '#ff2d2d'
+			WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, oficios.fecha_respuesta, 120) ) < cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NOT NULL THEN '#5fd710'
+			WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, getdate(), 120) ) < cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NULL THEN '#f5f233'
+			WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, getdate(), 120) ) > cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NULL THEN '#f98200'
+			WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, oficios.fecha_respuesta, 120) ) > cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NOT NULL THEN '#ff2d2d'
 			ELSE '#000000' END as color"),
     		DB::raw("CONCAT( RIGHT('0'+cast(DAY(oficios.created_at) as varchar(2)),2) ,' de ', dbo.fn_GetMonthName (oficios.created_at, 'Spanish'),' de ',YEAR(oficios.created_at),' a las ', CONVERT(VARCHAR(5),oficios.created_at,108)) as f_ingreso"),
     		'oficios.id',
@@ -74,13 +76,18 @@ class OficioController extends Controller
 			'oficios.descripcion_rechazo_jefe',
 			'descripcion_rechazo_final',
 			DB::raw("RIGHT(oficios.archivo_respuesta, 3) as extension"),
-			'respuestas_oficio.nombre as destinatario'
+			'respuestas_oficio.nombre as destinatario',
+			't3.total_inicial',
+			't4.total_respuesta',
+			'respuestas_oficio.respuesta as asunto',
     	)
     	->join('cat_des','cat_des.id','oficios.dep_ua')
     	->join('cat_areas','cat_areas.id','oficios.area')
     	->leftJoin('cat_procesos','cat_procesos.id','oficios.proceso_impacta')
     	->Leftjoin('users','users.id','oficios.id_usuario')
 		->leftJoin('respuestas_oficio','respuestas_oficio.id_oficio','oficios.id')
+		->leftJoin(DB::raw("(SELECT COUNT(id) as total_inicial, id_oficio_inicial FROM archivos_oficios WHERE id_nuevo_oficio IS NULL AND id_oficio IS NULL GROUP BY id_oficio_inicial ) as t3"),'t3.id_oficio_inicial','oficios.id')
+		->leftJoin(DB::raw("(SELECT COUNT(id) as total_respuesta, id_oficio  FROM archivos_oficios WHERE id_nuevo_oficio IS  NULL AND id_oficio_inicial IS NULL GROUP BY id_oficio ) as t4"),'t4.id_oficio','oficios.id')
     	->whereRaw("1=1 $where")
 		->orWhere("area", 1)
     	->orderBy('id')
@@ -102,21 +109,48 @@ class OficioController extends Controller
 			'descripcion_rechazo_jefe',
 			'descripcion_rechazo_final',
 			'archivo',
+			DB::Raw("COALESCE(respuesta, descripcion) as respuesta"),
 			'masivo',
+			'oficio_respuesta',
+			't3.total_nuevo',
+			DB::raw("COALESCE(t1.nombre_desti, 'Grupal') as nombre_desti"),
 			DB::raw("CONCAT( RIGHT('0'+cast(DAY(nuevos_oficios.created_at) as varchar(2)),2) ,' de ', dbo.fn_GetMonthName (nuevos_oficios.created_at, 'Spanish'),' de ',YEAR(nuevos_oficios.created_at),' a las ', CONVERT(VARCHAR(5),nuevos_oficios.created_at,108)) as f_ingreso"),
 			DB::raw("RIGHT(nuevos_oficios.archivo_respuesta, 3) as extension"),
 		)
 		->join('cat_areas','cat_areas.id','nuevos_oficios.id_area')
+		->leftJoin(DB::raw("(SELECT COUNT(id) as total_nuevo, id_nuevo_oficio FROM archivos_oficios WHERE id_oficio_inicial IS NULL AND id_oficio IS NULL GROUP BY id_nuevo_oficio ) as t3"),'t3.id_nuevo_oficio','nuevos_oficios.id')
+		->leftJoin(DB::raw("(
+		SELECT destinatarios_oficio.id_oficio,
+		CASE 
+		WHEN t1.total = 1 AND destinatarios_oficio.tipo_usuario = 1 THEN directorios.nombre
+		WHEN t1.total = 1 AND destinatarios_oficio.tipo_usuario = 2 THEN cat_destinatarios_externos.nombre
+		WHEN t1.total > 1 THEN 'Multi Destinatario'
+		ELSE '' END AS nombre_desti
+		FROM destinatarios_oficio 
+		JOIN (SELECT MAX(id) as id, COUNT(id) as total FROM destinatarios_oficio  GROUP BY id_oficio ) as t1 ON t1.id = destinatarios_oficio.id
+		LEFT JOIN directorios ON directorios.id = destinatarios_oficio.id_usuario
+		LEFT JOIN cat_destinatarios_externos ON cat_destinatarios_externos.id = destinatarios_oficio.id_usuario
+		) as t1"),'nuevos_oficios.id','t1.id_oficio')
 		->whereRaw("1=1 $whereDos")
 		->get();
 
-    	return Inertia::render('Oficios/MisOficios', [
-            'status' => session('status'),
-            'oficios' => $oficios,
-            'usuariosSelect' => $usuarios,
-			'procesos' => $procesos,
-			'nuevos' => $nuevos
-        ]);
+		if(\Auth::user()->rol == 6){
+			return Inertia::render('Oficios/OficiosAdmin', [
+				'status' => session('status'),
+				'oficios' => $oficios,
+				'usuariosSelect' => $usuarios,
+				'procesos' => $procesos,
+				'nuevos' => $nuevos
+			]);
+		}else{
+			return Inertia::render('Oficios/MisOficios', [
+				'status' => session('status'),
+				'oficios' => $oficios,
+				'usuariosSelect' => $usuarios,
+				'procesos' => $procesos,
+				'nuevos' => $nuevos
+			]);
+		}
     }
 
 	public function indexResp($id)
@@ -136,7 +170,7 @@ class OficioController extends Controller
 
 		$copy = Copia::select('id','id_oficio','id_directorio','nombre','cargo','dependencia')->where('id_oficio', $id)->get();
 		
-		$respuesta = RespuestaOficio::select('id','id_oficio', 'tipo_destinatario', 'nombre','cargo', 'dependencia', 'id_directorio', 'respuesta')
+		$respuesta = RespuestaOficio::select('id','id_oficio', 'tipo_destinatario', 'nombre','cargo', 'dependencia', 'id_directorio', 'respuesta', 'comentario')
 		->where('id_oficio', $id)
 		->first();
 
@@ -199,11 +233,14 @@ class OficioController extends Controller
 			'oficios.descripcion_rechazo',
 			'oficios.finalizado',
 			'oficios.ingreso',
-
+			'respuestas_oficio.comentario',
+			'respuestas_oficio.id as id_respuesta',
+			'respuestas_oficio.fecha_respuesta'
     	)
     	->join('cat_des','cat_des.id','oficios.dep_ua')
     	->join('cat_areas','cat_areas.id','oficios.area')
     	->join('cat_procesos','cat_procesos.id','oficios.proceso_impacta')
+		->join('respuestas_oficio','respuestas_oficio.id_oficio','oficios.id')
     	->Leftjoin('users','users.id','oficios.id_usuario')
     	->where('oficios.id', $id)
     	->first();
@@ -242,10 +279,10 @@ class OficioController extends Controller
 	public function viewOficiosResp(){
 		$oficios = Oficio::select(
     		DB::raw("CASE 
-			WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, fecha_respuesta, 120) ) < cat_areas.minutos_oficio AND fecha_respuesta IS NOT NULL THEN '#5fd710'
-			WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, getdate(), 120) ) < cat_areas.minutos_oficio AND fecha_respuesta IS NULL THEN '#f5f233'
-			WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, getdate(), 120) ) > cat_areas.minutos_oficio AND fecha_respuesta IS NULL THEN '#f98200'
-			WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, fecha_respuesta, 120) ) > cat_areas.minutos_oficio AND fecha_respuesta IS NOT NULL THEN '#ff2d2d'
+			WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, oficios.fecha_respuesta, 120) ) < cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NOT NULL THEN '#5fd710'
+			WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, getdate(), 120) ) < cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NULL THEN '#f5f233'
+			WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, getdate(), 120) ) > cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NULL THEN '#f98200'
+			WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, oficios.fecha_respuesta, 120) ) > cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NOT NULL THEN '#ff2d2d'
 			ELSE '#000000' END as color"),
     		DB::raw("CONCAT( RIGHT('0'+cast(DAY(oficios.created_at) as varchar(2)),2) ,' de ', dbo.fn_GetMonthName (oficios.created_at, 'Spanish'),' de ',YEAR(oficios.created_at),' a las ', CONVERT(VARCHAR(5),oficios.created_at,108)) as f_ingreso"),
 			DB::raw(" CASE WHEN ingreso = 'Email' THEN num_folio ELSE num_oficio END as numero_oficio "),
@@ -261,9 +298,11 @@ class OficioController extends Controller
 			'oficios.archivo_respuesta',
 			'oficios.oficio_final',
 			DB::raw("RIGHT(oficios.archivo_respuesta, 3) as extension"),
+			'respuestas_oficio.respuesta as asunto',
     	)
     	->join('cat_areas','cat_areas.id','oficios.area')
     	->leftJoin('cat_procesos','cat_procesos.id','oficios.proceso_impacta')
+		->leftJoin('respuestas_oficio','respuestas_oficio.id_oficio','oficios.id')
     	->where('finalizado', 1)
 		->orWhere('area', 1)
     	->orderBy('id')
@@ -276,10 +315,26 @@ class OficioController extends Controller
 			'nuevos_oficios.archivo_respuesta',
 			'enviado',
 			'finalizado',
+			'masivo',
+			'nuevos_oficios.oficio_respuesta',
+			DB::raw("COALESCE(t1.nombre_desti, 'Grupal') as nombre_desti"),
 			DB::raw("CONCAT( RIGHT('0'+cast(DAY(nuevos_oficios.created_at) as varchar(2)),2) ,' de ', dbo.fn_GetMonthName (nuevos_oficios.created_at, 'Spanish'),' de ',YEAR(nuevos_oficios.created_at),' a las ', CONVERT(VARCHAR(5),nuevos_oficios.created_at,108)) as f_ingreso"),
 			DB::raw("RIGHT(nuevos_oficios.archivo_respuesta, 3) as extension"),
+			DB::Raw("COALESCE(respuesta, descripcion) as respuesta"),
 		)
 		->join('cat_areas','cat_areas.id','nuevos_oficios.id_area')
+		->leftJoin(DB::raw("(
+		SELECT destinatarios_oficio.id_oficio,
+		CASE 
+		WHEN t1.total = 1 AND destinatarios_oficio.tipo_usuario = 1 THEN directorios.nombre
+		WHEN t1.total = 1 AND destinatarios_oficio.tipo_usuario = 2 THEN cat_destinatarios_externos.nombre
+		WHEN t1.total > 1 THEN 'Multi Destinatario'
+		ELSE '' END AS nombre_desti
+		FROM destinatarios_oficio 
+		JOIN (SELECT MAX(id) as id, COUNT(id) as total FROM destinatarios_oficio  GROUP BY id_oficio ) as t1 ON t1.id = destinatarios_oficio.id
+		LEFT JOIN directorios ON directorios.id = destinatarios_oficio.id_usuario
+		LEFT JOIN cat_destinatarios_externos ON cat_destinatarios_externos.id = destinatarios_oficio.id_usuario
+		) as t1"),'nuevos_oficios.id','t1.id_oficio')
 		->where('finalizado', 1)
 		->get();
 
@@ -522,9 +577,10 @@ class OficioController extends Controller
 			'destinatarioDos' => 'required',
 			'dirigido_aDos' => 'required_if:destinatarioDos,Interno',
 			'nombreDos' => 'required|min:2|max:155',
-			'cargoDos' => 'required|min:2|max:255',
-			'dependenciaDos' => 'required|min:2|max:255',
-			'asunto' => 'nullable|min:2|max:8000'
+			'cargoDos' => 'nullable|min:2|max:255',
+			'dependenciaDos' => 'nullable|min:2|max:255',
+			'asunto' => 'nullable|min:2',
+			'comentario' => 'nullable|min:2|max:1000'
 		]);
 
 		
@@ -549,6 +605,7 @@ class OficioController extends Controller
 		$respuesta->cargo = $request->cargoDos;
 		$respuesta->dependencia = $request->dependenciaDos;
 		$respuesta->respuesta = $request->asunto;
+		$respuesta->comentario = $request->comentario;
 		$respuesta->save();
 		
 		return back()->with('status', "Se guardo la respuesta del oficio.");
@@ -597,7 +654,14 @@ class OficioController extends Controller
 	 */
 	public function exportapdf($id, $guarda = 0)
 	{
-		$fecha = date('Y-m-d');
+		$respuesta = RespuestaOficio::where('id_oficio', $id)->first();
+
+		
+		if($respuesta?->fecha_respuesta){
+			$fecha = $respuesta?->fecha_respuesta;
+		}else{
+			$fecha = date('Y-m-d');
+		}
 
 		// Obtener la fecha actual en español, ejemplo: 04 de julio de 2025
 		setlocale(LC_TIME, 'es_ES.UTF-8', 'Spanish_Spain.1252');
@@ -615,7 +679,6 @@ class OficioController extends Controller
 			$fechaEscrita = "$dia de $mes de $anio";
 		}
 
-		$respuesta = RespuestaOficio::where('id_oficio', $id)->first();
 		$copias = Copia::where('id_oficio', $id)->get();
 		
 		$oficio = Oficio::select(
@@ -659,12 +722,15 @@ class OficioController extends Controller
 	}
 
 	public function uploadFiles(Request $request, $id){
+		ini_set('upload_max_filesize', '30M');
+    	ini_set('post_max_size', '30M');
+
 		if (!$request->expectsJson()) {
 			$request->headers->set('Accept', 'application/json');
 		}
 	
 		$request->validate([
-            'file' => 'required|file|max:5120|mimes:pdf,doc,docx,jpg,png,xlsx,xls,csv,txt',
+            'file' => 'required|file|max:25600|mimes:pdf,doc,docx,jpg,png,xlsx,xls,csv,txt, pptx, xml, zip, rar',
         ]);
 
         if ($request->hasFile('file')) {
@@ -680,7 +746,7 @@ class OficioController extends Controller
 			$archivoOficio->save();	
 
             return response()->json([
-                'id' => $archivoOficio->id, // FilePond espera un id para revert
+                'id' => $archivoOficio->id,
                 'path' => $path,
                 'url' => \Storage::url($path),
             ]);
@@ -742,8 +808,10 @@ class OficioController extends Controller
 
 	public function subeEvidenciaRecibido(Request $request)
 	{
+		ini_set('upload_max_filesize', '30M');
+    	ini_set('post_max_size', '30M');
 		$request->validate([
-			'archivo' => 'required|file|max:5120|mimes:pdf,jpg,png,jpeg',
+			'archivo' => 'required|file|max:25600|mimes:pdf,jpg,png,jpeg',
 		]);
 
 		$archivo = 'recibido_oficios/'.time()."_".\Auth::user()->id."_".$request->archivo->getClientOriginalName();
@@ -751,16 +819,222 @@ class OficioController extends Controller
 
 		if($request->tipo == 'respuesta'){
 			$oficio = Oficio::find($request->id);
-		}else{
+		}else if($request->tipo == 'nuevo'){
 			$oficio = NuevoOficio::find($request->id);
+		}else if($request->tipo == 'destinatario'){
+			$oficio = DestinatarioOficio::find($request->id);
 		}
 		$oficio->archivo_respuesta = $archivo;
 		$oficio->save();
 
+		if($request->tipo == 'destinatario'){
+			$bandera = DestinatarioOficio::select(
+				'id_oficio', 
+				DB::raw("SUM( CASE WHEN archivo_respuesta IS NULL THEN 1 ELSE 0 END ) as count")
+			)
+			->where('id_oficio', $oficio->id_oficio)
+			->groupBy('id_oficio')
+			->first();
+
+			if($bandera->count == 0){
+				$nuevo = NuevoOficio::find($bandera->id_oficio);
+				$nuevo->archivo_respuesta = "TERMINADO";
+				$nuevo->save();
+
+				return redirect()->route('oficiosRespuestas');
+			}
+		}
 		
 		return back()->with('status', "Se guardo la respuesta del oficio.");
 		
 
+	}
+
+
+	public function actualizaFecha(Request $request)
+	{
+		$request->validate([
+			'fecha' => 'required|date',
+		]);
+
+		$oficio = RespuestaOficio::find($request->id);
+		$oficio->fecha_respuesta = $request->fecha;
+		$oficio->save();
+
+		return back()->with('status', "Se actualizo la fecha de respuesta del oficio.");
+	}
+
+	public function getArchivosAdjuntos($id, $tipo){
+		try {
+    		$archivos = ArchivoOficio::select('id','nombre', 'archivo')
+			->where($tipo, $id)
+			->get()
+			->map(function($archivo) {
+				$extension = pathinfo($archivo->archivo, PATHINFO_EXTENSION);
+				
+				if($extension == "pdf" || $extension == "jpg" || $extension == "jpeg" || $extension == "png"){
+					$tipo = 1;
+					$url = $archivo->archivo;
+				}else{
+					$url = asset("files/".$archivo->archivo);
+					$tipo = 2;
+				}
+
+				return [
+					'id' => $archivo->id,
+					'tipo' => $tipo,
+					'url' => $url,
+					'nombre' => $archivo->nombre,
+					'extension' => $extension,
+				];
+				
+			});
+
+    		$msg = [
+    			'code' => 200,
+    			'mensaje' => 'Listado de archivos adjuntos al oficio',
+    			'data' => $archivos
+    		];
+    	} catch (\Illuminate\DataBase\QueryException $ex) {
+    		$msg = [
+                'code' => 400,
+                'mensaje' => 'Intente de nuevo o consulte al administrador del sistema',
+                'data' => $ex
+    		];
+    	} catch (Exception $e) {
+    		$msg = [
+                'code' => 400,
+                'mensaje' => 'Intente de nuevo o consulte al administrador del sistema',
+                'data' => $e
+    		];
+    	}
+
+    	return response()->json($msg, $msg['code']);
+
+	}
+
+	public function getEstatus($valor, $tipo){
+		try{
+			$where = "";
+			if(\Auth::user()->rol == 3){
+				$where = " AND area = ".\Auth::user()->id_area;
+				$whereDos = " AND id_area = ".\Auth::user()->id_area." AND revision = 1";
+			}else if(\Auth::user()->rol == 4){
+				$where = " AND id_usuario = ".\Auth::user()->id;
+				$whereDos = " AND id_usuario = ".\Auth::user()->id;
+			}else if( \Auth::user()->rol == 5){
+				$where = " AND finalizado = 1";
+			}
+
+			switch($valor){
+				case 0:
+					$where .= "";
+					break;
+				case 1:
+					$where .= " AND CASE 
+					WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, oficios.fecha_respuesta, 120) ) < cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NOT NULL THEN '#5fd710'
+					WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, getdate(), 120) ) < cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NULL THEN '#f5f233'
+					WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, getdate(), 120) ) > cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NULL THEN '#f98200'
+					WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, oficios.fecha_respuesta, 120) ) > cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NOT NULL THEN '#ff2d2d'
+					END = '#5fd710' ";
+					break;
+				case 2:
+					$where .= " AND CASE 
+					WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, oficios.fecha_respuesta, 120) ) < cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NOT NULL THEN '#5fd710'
+					WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, getdate(), 120) ) < cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NULL THEN '#f5f233'
+					WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, getdate(), 120) ) > cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NULL THEN '#f98200'
+					WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, oficios.fecha_respuesta, 120) ) > cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NOT NULL THEN '#ff2d2d'
+					END = '#f5f233' ";
+					break;
+				case 3:
+					$where .= " AND CASE 
+					WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, oficios.fecha_respuesta, 120) ) < cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NOT NULL THEN '#5fd710'
+					WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, getdate(), 120) ) < cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NULL THEN '#f5f233'
+					WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, getdate(), 120) ) > cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NULL THEN '#f98200'
+					WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, oficios.fecha_respuesta, 120) ) > cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NOT NULL THEN '#ff2d2d'
+					END = '#f98200' ";
+					break;
+				case 4:
+					$where .= " AND CASE 
+					WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, oficios.fecha_respuesta, 120) ) < cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NOT NULL THEN '#5fd710'
+					WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, getdate(), 120) ) < cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NULL THEN '#f5f233'
+					WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, getdate(), 120) ) > cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NULL THEN '#f98200'
+					WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, oficios.fecha_respuesta, 120) ) > cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NOT NULL THEN '#ff2d2d'
+					END = '#ff2d2d' ";
+					break;
+			}
+			
+		
+			$oficios = Oficio::select(
+				DB::raw("CASE 
+				WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, oficios.fecha_respuesta, 120) ) < cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NOT NULL THEN '#5fd710'
+				WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, getdate(), 120) ) < cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NULL THEN '#f5f233'
+				WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, getdate(), 120) ) > cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NULL THEN '#f98200'
+				WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, oficios.fecha_respuesta, 120) ) > cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NOT NULL THEN '#ff2d2d'
+				END as color"),
+				DB::raw("CONCAT( RIGHT('0'+cast(DAY(oficios.created_at) as varchar(2)),2) ,' de ', dbo.fn_GetMonthName (oficios.created_at, 'Spanish'),' de ',YEAR(oficios.created_at),' a las ', CONVERT(VARCHAR(5),oficios.created_at,108)) as f_ingreso"),
+				'oficios.id',
+				'num_folio',
+				'num_oficio',
+				DB::raw(" CASE WHEN ingreso = 'Email' THEN num_folio ELSE num_oficio END as numero_oficio "),
+				'cat_des.nombre as des',
+				'cat_areas.nombre as area',
+				'cat_procesos.nombre as proceso',
+				'dep_ua',
+				'area as id_area',
+				DB::raw("coalesce(users.name,'' ) as responsable"),
+				'oficios.id_usuario',
+				'proceso_impacta',
+				'descripcion',
+				'oficios.archivo',
+				'oficios.descripcion_respuesta',
+				'oficios.archivo_respuesta',
+				'oficios.descripcion_rechazo',
+				'oficios.finalizado',
+				'oficios.respuesta',
+				'oficios.oficio_final',
+				'oficios.descripcion_rechazo_jefe',
+				'descripcion_rechazo_final',
+				DB::raw("RIGHT(oficios.archivo_respuesta, 3) as extension"),
+				'respuestas_oficio.nombre as destinatario',
+				't3.total_inicial',
+				't4.total_respuesta',
+				'respuestas_oficio.respuesta as asunto',
+			)
+			->join('cat_des','cat_des.id','oficios.dep_ua')
+			->join('cat_areas','cat_areas.id','oficios.area')
+			->leftJoin('cat_procesos','cat_procesos.id','oficios.proceso_impacta')
+			->Leftjoin('users','users.id','oficios.id_usuario')
+			->leftJoin('respuestas_oficio','respuestas_oficio.id_oficio','oficios.id')
+			->leftJoin(DB::raw("(SELECT COUNT(id) as total_inicial, id_oficio_inicial FROM archivos_oficios WHERE id_nuevo_oficio IS NULL AND id_oficio IS NULL GROUP BY id_oficio_inicial ) as t3"),'t3.id_oficio_inicial','oficios.id')
+			->leftJoin(DB::raw("(SELECT COUNT(id) as total_respuesta, id_oficio  FROM archivos_oficios WHERE id_nuevo_oficio IS  NULL AND id_oficio_inicial IS NULL GROUP BY id_oficio ) as t4"),'t4.id_oficio','oficios.id')
+			->whereRaw("1=1 $where")
+			->orWhere("area", 1)
+			->orderBy('id')
+			->get();
+		
+
+				$msg = [
+					'code' => 200,
+					'mensaje' => 'Listado de procesos',
+					'data' => $oficios
+				];
+		} catch (\Illuminate\DataBase\QueryException $ex) {
+			$msg = [
+				'code' => 400,
+				'mensaje' => 'Intente de nuevo o consulte al administrador del sistema',
+				'data' => $ex
+			];
+		} catch (Exception $e) {
+			$msg = [
+				'code' => 400,
+				'mensaje' => 'Intente de nuevo o consulte al administrador del sistema',
+				'data' => $e
+			];
+		}
+
+		return response()->json($msg, $msg['code']);
+		
 	}
 
 }

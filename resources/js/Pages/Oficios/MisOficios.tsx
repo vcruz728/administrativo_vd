@@ -18,20 +18,30 @@ import {
 } from "react-bootstrap";
 import PageHeader from "../../Layouts/layoutcomponents/pageHeader";
 import "filepond/dist/filepond.min.css";
-import DataTable from "datatables.net-react";
-import DT from "datatables.net-bs5";
 // @ts-ignore
 import language from "datatables.net-plugins/i18n/es-MX.mjs";
 import VerPdf from "@/types/VerPdf";
 import Select, { SelectInstance } from "react-select";
 import InputError from "../InputError";
-import { getFullUrl } from "../../types/url";
 import { toast } from "react-hot-toast";
 import Swal from "sweetalert2";
-import $ from "jquery";
 import LineaTiempo from "@/types/LineaTiempo";
 
+import $ from "jquery";
+import DataTable from "datatables.net-react";
+import DT from "datatables.net-bs5";
+
+// Importa JSZip y asigna a window si es necesario
+import JSZip from "jszip";
+// @ts-ignore
+window.JSZip = JSZip;
+
+// Importa los botones de DataTables
+import "datatables.net-buttons-bs5";
+import "datatables.net-buttons/js/buttons.html5.js";
+
 DataTable.use(DT);
+
 export default function Recepcion({
     status,
     oficios,
@@ -48,9 +58,10 @@ export default function Recepcion({
     const user = usePage().props.auth.user;
     const [show, setShow] = useState<boolean>(false);
     const [show2, setShow2] = useState(false);
+    const [show3, setShow3] = useState(false);
     const [show4, setShow4] = useState(false);
+    const [archivos, setArchivos] = useState([]);
     const [showLinea, setShowLinea] = useState<boolean>(false);
-
     const [procesosSelect, setProcesosSelect] = useState([]);
     const [textos, setTextos] = useState({
         textoRechazo: "",
@@ -65,6 +76,8 @@ export default function Recepcion({
     const [activos, setActivos] = useState<any[]>();
     const [historico, setHistorico] = useState<any[]>();
     const [informativos, setInformativos] = useState<any[]>();
+    const [nuevoOfi, setNuevoOfi] = useState<any[]>();
+    const [nuevoHistorico, setNuevoHistorico] = useState<any[]>();
 
     useEffect(() => {
         setActivos(
@@ -96,6 +109,23 @@ export default function Recepcion({
                 }))
         );
     }, [oficios]);
+
+    useEffect(() => {
+        setNuevoOfi(
+            (nuevos || [])
+                .filter((item: any) => item.archivo_respuesta === null)
+                .map((file: any) => ({
+                    ...file,
+                }))
+        );
+        setNuevoHistorico(
+            (nuevos || [])
+                .filter((item: any) => item.archivo_respuesta !== null)
+                .map((file: any) => ({
+                    ...file,
+                }))
+        );
+    }, [nuevos]);
 
     const formResponsable = useForm({
         id: "",
@@ -185,6 +215,78 @@ export default function Recepcion({
         });
     };
 
+    const verArchivosAdjuntos = async (id: number, tipo: string) => {
+        const response = await fetch(
+            route("oficios.getArchivosAdjuntos", {
+                id: id,
+                tipo: tipo,
+            }),
+            {
+                method: "get",
+            }
+        );
+
+        const datos = await response.json();
+
+        setArchivos(datos.data);
+        setShow3(true);
+    };
+
+    const verArchivo = (url: string, tipo: number, extension: string) => {
+        if (tipo == 1) {
+            setVariables({
+                ...variables,
+                urlPdf: url,
+                extension: extension,
+            });
+            setShow(true);
+        } else {
+            window.open(url, "_blank");
+        }
+    };
+
+    const filtroTabla = async (valor: string, tipo: string) => {
+        const response = await fetch(
+            route("oficios.getEstatus", {
+                valor: valor,
+                tipo: tipo,
+            }),
+            {
+                method: "get",
+            }
+        );
+
+        const datos = await response.json();
+
+        switch (tipo) {
+            case "activos":
+                setActivos(
+                    (datos.data || [])
+                        .filter(
+                            (item: any) =>
+                                item.archivo_respuesta === null &&
+                                item.id_area !== "1"
+                        )
+                        .map((file: any) => ({
+                            ...file,
+                        }))
+                );
+                break;
+            case "historico_vd":
+                setHistorico(
+                    (datos.data || [])
+                        .filter(
+                            (item: any) =>
+                                item.archivo_respuesta !== null &&
+                                item.id_area !== "1"
+                        )
+                        .map((file: any) => ({
+                            ...file,
+                        }))
+                );
+                break;
+        }
+    };
     return (
         <AppLayout>
             <Head>
@@ -234,11 +336,88 @@ export default function Recepcion({
                                                 md={12}
                                                 className="table-responsive"
                                             >
+                                                <div className="mb-3 d-flex justify-content-between">
+                                                    <div
+                                                        style={{ width: "20%" }}
+                                                    >
+                                                        <div
+                                                            className="form-group"
+                                                            style={{
+                                                                margin: 0,
+                                                            }}
+                                                        >
+                                                            <select
+                                                                className="form-control"
+                                                                onChange={(e) =>
+                                                                    filtroTabla(
+                                                                        e.target
+                                                                            .value,
+                                                                        "activos"
+                                                                    )
+                                                                }
+                                                            >
+                                                                <option value="0">
+                                                                    Todos
+                                                                </option>
+                                                                <option value="1">
+                                                                    Se dio
+                                                                    respuesta en
+                                                                    tiempo
+                                                                </option>
+                                                                <option value="2">
+                                                                    Sin
+                                                                    respuesta,
+                                                                    en tiempo
+                                                                </option>
+                                                                <option value="3">
+                                                                    Sin
+                                                                    respuesta,
+                                                                    fuera de
+                                                                    tiempo
+                                                                </option>
+                                                                <option value="4">
+                                                                    Se dio
+                                                                    respuesta
+                                                                    fuera de
+                                                                    tiempo
+                                                                </option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        className="btn btn-success"
+                                                        onClick={() => {
+                                                            const table =
+                                                                $(
+                                                                    "#activos-table"
+                                                                ).DataTable();
+                                                            table
+                                                                .button(
+                                                                    ".buttons-excel"
+                                                                )
+                                                                .trigger();
+                                                        }}
+                                                    >
+                                                        Exportar a Excel
+                                                    </button>
+                                                </div>
                                                 <DataTable
+                                                    id="activos-table"
                                                     data={activos}
                                                     options={{
                                                         language,
                                                         autoWidth: false,
+                                                        buttons: [
+                                                            {
+                                                                extend: "excel",
+                                                                exportOptions: {
+                                                                    columns: [
+                                                                        1, 2, 3,
+                                                                        4, 5,
+                                                                    ], // exporta solo las primeras 8 columnas
+                                                                },
+                                                            },
+                                                        ],
                                                     }}
                                                     columns={[
                                                         {
@@ -292,6 +471,12 @@ export default function Recepcion({
                                                             data: "proceso",
                                                             width: "15%",
                                                             title: "Acciones",
+                                                        },
+                                                        {
+                                                            data: "asunto",
+                                                            title: "Respuesta",
+                                                            visible: false,
+                                                            searchable: true,
                                                         },
                                                     ]}
                                                     className="display table-bordered  border-bottom ancho100"
@@ -486,11 +671,78 @@ export default function Recepcion({
                                                 md={12}
                                                 className="table-responsive"
                                             >
+                                                <div className="mb-3 d-flex justify-content-between">
+                                                    <div
+                                                        style={{ width: "20%" }}
+                                                    >
+                                                        <div
+                                                            className="form-group"
+                                                            style={{
+                                                                margin: 0,
+                                                            }}
+                                                        >
+                                                            <select
+                                                                className="form-control"
+                                                                onChange={(e) =>
+                                                                    filtroTabla(
+                                                                        e.target
+                                                                            .value,
+                                                                        "historico_vd"
+                                                                    )
+                                                                }
+                                                            >
+                                                                <option value="0">
+                                                                    Todos
+                                                                </option>
+                                                                <option value="1">
+                                                                    Se dio
+                                                                    respuesta en
+                                                                    tiempo
+                                                                </option>
+                                                                <option value="4">
+                                                                    Se dio
+                                                                    respuesta
+                                                                    fuera de
+                                                                    tiempo
+                                                                </option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        className="btn btn-success"
+                                                        onClick={() => {
+                                                            const table =
+                                                                $(
+                                                                    "#historico-table"
+                                                                ).DataTable();
+                                                            table
+                                                                .button(
+                                                                    ".buttons-excel"
+                                                                )
+                                                                .trigger();
+                                                        }}
+                                                    >
+                                                        Exportar a Excel
+                                                    </button>
+                                                </div>
                                                 <DataTable
+                                                    id="historico-table"
                                                     data={historico}
                                                     options={{
                                                         language,
                                                         autoWidth: false,
+                                                        buttons: [
+                                                            {
+                                                                extend: "excel",
+                                                                exportOptions: {
+                                                                    columns: [
+                                                                        1, 2, 3,
+                                                                        4, 5, 6,
+                                                                        7,
+                                                                    ], // exporta solo las primeras 8 columnas
+                                                                },
+                                                            },
+                                                        ],
                                                     }}
                                                     columns={[
                                                         {
@@ -546,6 +798,12 @@ export default function Recepcion({
                                                             data: "proceso",
                                                             title: "Acciones",
                                                         },
+                                                        {
+                                                            data: "asunto",
+                                                            title: "Respuesta",
+                                                            visible: false,
+                                                            searchable: true,
+                                                        },
                                                     ]}
                                                     className="display table-bordered  border-bottom ancho100"
                                                     slots={{
@@ -597,6 +855,23 @@ export default function Recepcion({
                                                                     <i className="fa fa-file-pdf-o"></i>
                                                                 </Button>
 
+                                                                {row.total_respuesta !==
+                                                                null ? (
+                                                                    <Button
+                                                                        className="btn-icon ml-1"
+                                                                        variant="primary"
+                                                                        onClick={() => {
+                                                                            verArchivosAdjuntos(
+                                                                                row.id,
+                                                                                "id_oficio"
+                                                                            );
+                                                                        }}
+                                                                        title="Ver archivos adjuntos de la respuesta oficio"
+                                                                    >
+                                                                        <i className="fa fa-folder-open"></i>
+                                                                    </Button>
+                                                                ) : null}
+
                                                                 <Button
                                                                     className="btn-icon ml-1"
                                                                     variant="danger"
@@ -618,6 +893,23 @@ export default function Recepcion({
                                                                 >
                                                                     <i className="fa fa-eye"></i>
                                                                 </Button>
+
+                                                                {row.total_inicial !==
+                                                                null ? (
+                                                                    <Button
+                                                                        className="btn-icon ml-1"
+                                                                        variant="warning"
+                                                                        title="Ver archivos del oficio inicial"
+                                                                        onClick={() => {
+                                                                            verArchivosAdjuntos(
+                                                                                row.id,
+                                                                                "id_oficio_inicial"
+                                                                            );
+                                                                        }}
+                                                                    >
+                                                                        <i className="fa fa-folder-open"></i>
+                                                                    </Button>
+                                                                ) : null}
 
                                                                 <Button
                                                                     className="btn-icon ml-1"
@@ -719,11 +1011,41 @@ export default function Recepcion({
                                                 md={12}
                                                 className="table-responsive"
                                             >
+                                                <div className="mb-3 d-flex justify-content-end">
+                                                    <button
+                                                        className="btn btn-success"
+                                                        onClick={() => {
+                                                            const table =
+                                                                $(
+                                                                    "#vd-table"
+                                                                ).DataTable();
+                                                            table
+                                                                .button(
+                                                                    ".buttons-excel"
+                                                                )
+                                                                .trigger();
+                                                        }}
+                                                    >
+                                                        Exportar a Excel
+                                                    </button>
+                                                </div>
                                                 <DataTable
-                                                    data={nuevos}
+                                                    id="vd-table"
+                                                    data={nuevoOfi}
                                                     options={{
                                                         language,
                                                         autoWidth: false,
+                                                        buttons: [
+                                                            {
+                                                                extend: "excel",
+                                                                exportOptions: {
+                                                                    columns: [
+                                                                        0, 1, 2,
+                                                                        3,
+                                                                    ], // exporta solo las primeras 8 columnas
+                                                                },
+                                                            },
+                                                        ],
                                                     }}
                                                     columns={[
                                                         {
@@ -732,12 +1054,17 @@ export default function Recepcion({
                                                             width: "10%",
                                                         },
                                                         {
+                                                            data: "oficio_respuesta",
+                                                            title: "Num Folio/Oficio",
+                                                            width: "10%",
+                                                        },
+                                                        {
                                                             data: "area",
                                                             title: "Área",
                                                             width: "10%",
                                                         },
                                                         {
-                                                            data: "destinatario",
+                                                            data: "nombre_desti",
                                                             title: "Destinatario",
                                                             width: "10%",
                                                         },
@@ -746,10 +1073,16 @@ export default function Recepcion({
                                                             width: "15%",
                                                             title: "Acciones",
                                                         },
+                                                        {
+                                                            data: "respuesta",
+                                                            title: "Respuesta",
+                                                            visible: false,
+                                                            searchable: true,
+                                                        },
                                                     ]}
                                                     className="display table-bordered  border-bottom ancho100"
                                                     slots={{
-                                                        3: (
+                                                        4: (
                                                             data: any,
                                                             row: any
                                                         ) => (
@@ -875,57 +1208,168 @@ export default function Recepcion({
                                                                     </Link>
                                                                 ) : null}
 
-                                                                {row.masivo ==
-                                                                    1 &&
-                                                                row.archivo !==
-                                                                    null &&
-                                                                row.archivo.substring(
-                                                                    row?.archivo
-                                                                        .length -
-                                                                        3
-                                                                ) !== "pdf" ? (
-                                                                    <Button
-                                                                        className="btn-icon"
-                                                                        variant="primary"
-                                                                        title="Ver Word del oficio"
-                                                                        onClick={() => {
-                                                                            window.open(
-                                                                                getFullUrl(
-                                                                                    `/files/${row.archivo}`
-                                                                                ),
-                                                                                "_blank"
-                                                                            );
-                                                                        }}
-                                                                    >
-                                                                        <i className="fa fa-eye"></i>
-                                                                    </Button>
-                                                                ) : (
+                                                                <Link
+                                                                    href={route(
+                                                                        "oficios.detalleNuevo",
+                                                                        {
+                                                                            id: row.id,
+                                                                        }
+                                                                    )}
+                                                                >
                                                                     <Button
                                                                         className="btn-icon "
                                                                         variant="danger"
-                                                                        title="Ver PDF del oficio"
+                                                                        title="Ver detalle del oficio"
+                                                                    >
+                                                                        <i className="fa fa-eye"></i>
+                                                                    </Button>
+                                                                </Link>
+                                                            </div>
+                                                        ),
+                                                    }}
+                                                ></DataTable>
+                                            </Col>
+                                        </Tab>
+                                        <Tab
+                                            eventKey="tab5"
+                                            title="Oficios VD - Histórico"
+                                        >
+                                            <Col
+                                                md={12}
+                                                className="table-responsive"
+                                            >
+                                                <div className="mb-3 d-flex justify-content-end">
+                                                    <button
+                                                        className="btn btn-success"
+                                                        onClick={() => {
+                                                            const table = $(
+                                                                "#vd-historico-table"
+                                                            ).DataTable();
+                                                            table
+                                                                .button(
+                                                                    ".buttons-excel"
+                                                                )
+                                                                .trigger();
+                                                        }}
+                                                    >
+                                                        Exportar a Excel
+                                                    </button>
+                                                </div>
+                                                <DataTable
+                                                    id="vd-historico-table"
+                                                    data={nuevoHistorico}
+                                                    options={{
+                                                        language,
+                                                        autoWidth: false,
+                                                        buttons: [
+                                                            {
+                                                                extend: "excel",
+                                                                exportOptions: {
+                                                                    columns: [
+                                                                        0, 1, 2,
+                                                                        3,
+                                                                    ], // exporta solo las primeras 8 columnas
+                                                                },
+                                                            },
+                                                        ],
+                                                    }}
+                                                    columns={[
+                                                        {
+                                                            data: "f_ingreso",
+                                                            title: "Fecha de creación",
+                                                            width: "10%",
+                                                        },
+                                                        {
+                                                            data: "oficio_respuesta",
+                                                            title: "Num Folio/Oficio",
+                                                            width: "10%",
+                                                        },
+                                                        {
+                                                            data: "area",
+                                                            title: "Área",
+                                                            width: "10%",
+                                                        },
+                                                        {
+                                                            data: "nombre_desti",
+                                                            title: "Destinatario",
+                                                            width: "10%",
+                                                        },
+                                                        {
+                                                            data: "id",
+                                                            width: "15%",
+                                                            title: "Acciones",
+                                                        },
+                                                        {
+                                                            data: "respuesta",
+                                                            title: "Respuesta",
+                                                            visible: false,
+                                                            searchable: true,
+                                                        },
+                                                    ]}
+                                                    className="display table-bordered  border-bottom ancho100"
+                                                    slots={{
+                                                        4: (
+                                                            data: any,
+                                                            row: any
+                                                        ) => (
+                                                            <div className="text-center">
+                                                                {row.masivo ==
+                                                                1 ? (
+                                                                    <Button
+                                                                        className="btn-icon btn btn-warning mr-1"
+                                                                        variant="danger"
+                                                                        title="Ver confirmación de recibido"
                                                                         onClick={() => {
                                                                             setVariables(
                                                                                 {
                                                                                     ...variables,
-                                                                                    urlPdf:
-                                                                                        row.masivo ==
-                                                                                        1
-                                                                                            ? row.archivo
-                                                                                            : `imprime/nuevo/pdf/${row.id}`,
+                                                                                    urlPdf: row.archivo_respuesta,
                                                                                     extension:
-                                                                                        "pdf",
+                                                                                        row.extension,
                                                                                 }
                                                                             );
-
                                                                             setShow(
                                                                                 true
                                                                             );
                                                                         }}
                                                                     >
+                                                                        <i className="fa fa-file-pdf-o"></i>
+                                                                    </Button>
+                                                                ) : (
+                                                                    <Link
+                                                                        href={route(
+                                                                            "oficios.confirmaRecibidosNuevos",
+                                                                            {
+                                                                                id: row.id,
+                                                                            }
+                                                                        )}
+                                                                    >
+                                                                        <Button
+                                                                            className="btn-icon btn btn-warning mr-1"
+                                                                            variant="warning"
+                                                                            title="Confirmaciones de recibido"
+                                                                        >
+                                                                            <i className="fa fa-handshake-o"></i>{" "}
+                                                                        </Button>
+                                                                    </Link>
+                                                                )}
+
+                                                                <Link
+                                                                    href={route(
+                                                                        "oficios.detalleNuevo",
+                                                                        {
+                                                                            id: row.id,
+                                                                        }
+                                                                    )}
+                                                                >
+                                                                    <Button
+                                                                        className="btn-icon "
+                                                                        variant="danger"
+                                                                        title="Ver detalle del oficio"
+                                                                    >
                                                                         <i className="fa fa-eye"></i>
                                                                     </Button>
-                                                                )}
+                                                                </Link>
                                                             </div>
                                                         ),
                                                     }}
@@ -1097,6 +1541,69 @@ export default function Recepcion({
                             </Button>
                             <Button variant="primary" type="submit">
                                 Rechazar oficio
+                            </Button>
+                        </ModalFooter>
+                    </form>
+                </Modal>
+
+                <Modal size="xl" show={show3} onHide={() => setShow3(false)}>
+                    <ModalHeader>
+                        <ModalTitle as="h5">
+                            Archivos adjuntos del oficio
+                        </ModalTitle>
+                    </ModalHeader>
+                    <form onSubmit={submit}>
+                        <ModalBody>
+                            <Row>
+                                <Col xs={12}>
+                                    <DataTable
+                                        data={archivos}
+                                        options={{
+                                            language,
+                                            autoWidth: false,
+                                        }}
+                                        columns={[
+                                            {
+                                                data: "nombre",
+                                                title: "Archivo",
+                                            },
+
+                                            {
+                                                data: "id",
+                                                title: "Ver",
+                                            },
+                                        ]}
+                                        className="display table-bordered  border-bottom ancho100"
+                                        slots={{
+                                            1: (data: any, row: any) => (
+                                                <div className="text-center">
+                                                    <Button
+                                                        className="btn-icon ml-1"
+                                                        variant="danger"
+                                                        title="Ver archivo"
+                                                        onClick={() =>
+                                                            verArchivo(
+                                                                row.url,
+                                                                row.tipo,
+                                                                row.extension
+                                                            )
+                                                        }
+                                                    >
+                                                        <i className="fa fa-eye"></i>
+                                                    </Button>
+                                                </div>
+                                            ),
+                                        }}
+                                    ></DataTable>
+                                </Col>
+                            </Row>
+                        </ModalBody>
+                        <ModalFooter>
+                            <Button
+                                variant="secondary"
+                                onClick={() => setShow3(false)}
+                            >
+                                Cerrar
                             </Button>
                         </ModalFooter>
                     </form>
