@@ -260,7 +260,7 @@ class NuevoController extends Controller
 		}
 	
 		$request->validate([
-            'file' => 'required|file|max:25600|mimes:pdf,doc,docx,jpg,png,xlsx,xls,csv,txt, pptx, xml, zip, rar',
+            'file' => 'required|file|max:25600|mimes:pdf,doc,docx,jpg,png,xlsx,xls,csv,txt,pptx,xml,zip,rar',
         ]);
 
         if ($request->hasFile('file')) {
