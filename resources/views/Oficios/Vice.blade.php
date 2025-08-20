@@ -6,10 +6,13 @@
     <style>
         @page {
             size: letter;
-            margin-top: 4.5cm;
-            margin-left: 4.5cm;
+            margin-top: 2.5cm;
+            margin-left: 2.5cm;
             margin-right: 2.5cm;
             margin-bottom: 2.5cm;
+
+
+            
         }
 
         @font-face {
@@ -155,13 +158,20 @@
         overflow-wrap: break-word !important;
     }
 
-    .contenido-dinamico, .contenido-dinamico * {
-    font-family: 'SourceSansPro' !important;
-    font-size: 9pt !important;
-    font-style: italic;
-    color: black !important;
-    line-height: 1.15;
-}
+        .contenido-dinamico {
+            font-family: 'SourceSansPro', arial, sans-serif;
+            font-size: 9pt;
+            color: black;
+            line-height: 1.15;
+        }
+
+        .contenido-dinamico * {
+            font-family: inherit;
+            font-size: inherit;
+            color: inherit;
+            line-height: inherit;
+        }
+
     </style>
 </head>
 <body>
@@ -200,7 +210,7 @@
         </div>
     <br><br>
     <!--  contenido -->
-<div class="contenido-dinamico">
+<div class="contenido-dinamico" style="text-align: justify;">
     {!! $respuesta?->respuesta ?? '' !!}
 </div>
     <!--  termina contenido -->
