@@ -21,6 +21,7 @@ import FilePondPluginFilePoster from "filepond-plugin-file-poster";
 import "filepond/dist/filepond.min.css";
 import "filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css";
 import "filepond-plugin-file-poster/dist/filepond-plugin-file-poster.css";
+import "../../../css/suneditor.css";
 registerPlugin(FilePondPluginFilePoster, FilePondPluginImagePreview);
 // @ts-ignore
 import language from "datatables.net-plugins/i18n/es-MX.mjs";
@@ -81,7 +82,7 @@ export default function Nuevo({
     const [destinatarios, setDestinatarios] = useState<any[]>([]);
     const [showDos, setShowDos] = useState(false);
     const [numOficios, setNumOficios] = useState("0");
-    const htmlInicial = `<div>Por este medio le envío un cordial saludo, asimismo solicito de su apoyo </div>`;
+    const htmlInicial = `<div>Por este medio le envío un cordial saludo, asimismo </div>`;
 
     useEffect(() => {
         setData("id_oficio", oficio?.id || 0);
@@ -321,6 +322,15 @@ export default function Nuevo({
         }
     };
 
+    const cleanWordContent = (html: string) => {
+        return html
+            .replace(/<!--\[if.*?endif\]-->/gi, "") // Comentarios condicionales de Word
+            .replace(/class="?Mso.*?"?/gi, "") // Clases de Word
+            .replace(/style="[^"]*"/gi, "") // Estilos inline
+            .replace(/<\/?span[^>]*>/gi, "") // Spans innecesarios
+            .replace(/&nbsp;/gi, " "); // Espacios no separables
+    };
+
     return (
         <AppLayout>
             <Head>
@@ -443,7 +453,6 @@ export default function Nuevo({
                                                             setDefaultStyle="font-family: 'SourceSansPro'; font-size: 12px;"
                                                             setOptions={{
                                                                 lang: sunEditorLangEs,
-
                                                                 buttonList: [
                                                                     [
                                                                         "undo",
@@ -452,8 +461,10 @@ export default function Nuevo({
                                                                     [
                                                                         "font",
                                                                         "fontSize",
+                                                                        "formatBlock",
                                                                     ],
                                                                     [
+                                                                        "paragraphStyle",
                                                                         "blockquote",
                                                                     ],
                                                                     [
@@ -469,23 +480,39 @@ export default function Nuevo({
                                                                         "hiliteColor",
                                                                     ],
                                                                     [
-                                                                        "align",
-                                                                        "list",
-                                                                        "lineHeight",
-                                                                    ],
-                                                                    [
                                                                         "outdent",
                                                                         "indent",
                                                                     ],
                                                                     [
-                                                                        "table",
+                                                                        "align",
                                                                         "horizontalRule",
+                                                                        "list",
+                                                                        "lineHeight",
+                                                                    ],
+                                                                    [
+                                                                        "table",
+                                                                        "image",
+                                                                    ],
+                                                                    [
+                                                                        "fullScreen",
+                                                                    ],
+                                                                    [
+                                                                        "removeFormat",
                                                                     ],
                                                                 ],
+
                                                                 font: [
                                                                     "SourceSansPro",
+                                                                    "Arial",
+                                                                    "Courier New",
+                                                                    "Times New Roman",
                                                                 ],
-                                                                fontSize: [12],
+                                                                fontSize: [
+                                                                    8, 9, 10,
+                                                                    11, 12, 14,
+                                                                    16, 18, 20,
+                                                                    24, 28, 32,
+                                                                ],
                                                                 defaultTag:
                                                                     "div",
                                                                 minHeight:
@@ -494,14 +521,13 @@ export default function Nuevo({
                                                                     false,
                                                                 attributesWhitelist:
                                                                     {
-                                                                        all: "style",
-                                                                        table: "cellpadding|width|cellspacing|height|style",
-                                                                        tr: "valign|style",
-                                                                        td: "styleinsert|height|style",
-                                                                        img: "title|alt|src|style",
+                                                                        table: "style|width|height|cellpadding|cellspacing|border",
+                                                                        tr: "style|height|valign",
+                                                                        td: "style|width|height|colspan|rowspan",
                                                                     },
                                                             }}
                                                         />
+
                                                         <InputError
                                                             className="mt-1"
                                                             message={

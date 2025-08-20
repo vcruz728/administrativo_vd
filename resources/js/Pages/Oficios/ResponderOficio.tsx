@@ -37,6 +37,7 @@ import DataTable from "datatables.net-react";
 import DT from "datatables.net-bs5";
 // @ts-ignore
 import language from "datatables.net-plugins/i18n/es-MX.mjs";
+import "../../../css/suneditor.css";
 
 DataTable.use(DT);
 
@@ -121,7 +122,7 @@ export default function Recepcion({
         }
     }, [error]);
 
-    const htmlWithTableImages = `<div>Por este medio le envío un cordial saludo, asimismo solicito de su apoyo</div>`;
+    const htmlWithTableImages = `<div>Por este medio le envío un cordial saludo, asimismo </div>`;
 
     const {
         data,
@@ -140,7 +141,7 @@ export default function Recepcion({
         dependenciaDos: respuesta?.dependencia,
         dirigido_aDos: respuesta?.id_directorio,
         asunto: respuesta?.respuesta || htmlWithTableImages,
-        comentario: respuesta?.comentario,
+        comentario: (respuesta as any)?.comentario,
     });
 
     const submit: FormEventHandler = (e) => {
@@ -559,11 +560,17 @@ export default function Recepcion({
                                                 setDefaultStyle="font-family: 'SourceSansPro'; font-size: 12px;"
                                                 setOptions={{
                                                     lang: sunEditorLangEs,
-
                                                     buttonList: [
                                                         ["undo", "redo"],
-                                                        ["font", "fontSize"],
-                                                        ["blockquote"],
+                                                        [
+                                                            "font",
+                                                            "fontSize",
+                                                            "formatBlock",
+                                                        ],
+                                                        [
+                                                            "paragraphStyle",
+                                                            "blockquote",
+                                                        ],
                                                         [
                                                             "bold",
                                                             "underline",
@@ -576,28 +583,35 @@ export default function Recepcion({
                                                             "fontColor",
                                                             "hiliteColor",
                                                         ],
+                                                        ["outdent", "indent"],
                                                         [
                                                             "align",
+                                                            "horizontalRule",
                                                             "list",
                                                             "lineHeight",
                                                         ],
-                                                        ["outdent", "indent"],
-                                                        [
-                                                            "table",
-                                                            "horizontalRule",
-                                                        ],
+                                                        ["table", "image"],
+                                                        ["fullScreen"],
+                                                        ["removeFormat"],
                                                     ],
-                                                    font: ["SourceSansPro"],
-                                                    fontSize: [12],
+
+                                                    font: [
+                                                        "SourceSansPro",
+                                                        "Arial",
+                                                        "Courier New",
+                                                        "Times New Roman",
+                                                    ],
+                                                    fontSize: [
+                                                        8, 9, 10, 11, 12, 14,
+                                                        16, 18, 20, 24, 28, 32,
+                                                    ],
                                                     defaultTag: "div",
                                                     minHeight: "300px",
                                                     showPathLabel: false,
                                                     attributesWhitelist: {
-                                                        all: "style",
-                                                        table: "cellpadding|width|cellspacing|height|style",
-                                                        tr: "valign|style",
-                                                        td: "styleinsert|height|style",
-                                                        img: "title|alt|src|style",
+                                                        table: "style|width|height|cellpadding|cellspacing|border",
+                                                        tr: "style|height|valign",
+                                                        td: "style|width|height|colspan|rowspan",
                                                     },
                                                 }}
                                             />
