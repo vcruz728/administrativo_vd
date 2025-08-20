@@ -673,6 +673,8 @@ export default function Recepcion({
                                                     "application/pdf",
                                                     "image/jpeg",
                                                     "image/png",
+                                                    "application/xml",
+                                                    "text/xml",
                                                     "application/msword",
                                                     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                                                 ]}

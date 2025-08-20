@@ -683,6 +683,8 @@ export default function FormOficio({
                                                     acceptedFileTypes={[
                                                         "application/pdf",
                                                         "image/jpeg",
+                                                        "application/xml",
+                                                        "text/xml",
                                                         "image/png",
                                                         "application/msword",
                                                         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
