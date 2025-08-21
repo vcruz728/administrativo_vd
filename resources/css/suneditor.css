@@ -1,30 +1,36 @@
 /* SunEditor hoja tamaño carta */
 .sun-editor .se-wrapper-inner {
     position: relative;
-    width: 16.59cm !important; /* ancho útil = carta - márgenes */
-    min-height: 22.94cm !important; /* alto útil */
+    width: 21.59cm !important; /* tamaño completo carta */
+    min-height: 27.94cm !important;
     margin: auto;
     background: white;
-    padding: 2.5cm; /* margen interno */
+
+    /* Márgenes */
+    padding-top: 4.5cm; /* superior */
+    padding-left: 4.5cm; /* izquierdo */
+    padding-right: 2.5cm; /* derecho */
+    padding-bottom: 2.5cm; /* inferior */
+
     box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
     font-family: "SourceSansPro", sans-serif;
     font-size: 12px;
     line-height: 1.5;
 }
 
-/* Borde del área imprimible */
+/* Área imprimible (solo guía visual) */
 .sun-editor .se-wrapper-inner::before {
     content: "";
     position: absolute;
-    top: 2.5cm; /* margen superior */
-    left: 2.5cm; /* margen izquierdo */
+    top: 4.5cm; /* margen superior */
+    left: 4.5cm; /* margen izquierdo */
     right: 2.5cm; /* margen derecho */
     bottom: 2.5cm; /* margen inferior */
-    border: 1px dashed rgba(0, 0, 0, 0.3); /* línea punteada */
-    pointer-events: none; /* no interfiere con edición */
+    border: 1px dashed rgba(0, 0, 0, 0.3);
+    pointer-events: none;
 }
 
-/* Contenedor de hoja */
+/* Contenedor de la hoja */
 .sun-editor {
     border: 1px solid #ccc;
     display: flex;
@@ -33,6 +39,7 @@
     padding: 20px 0;
 }
 
+/* Ajuste para tablas */
 .editor-wrapper table td {
     resize: both;
     overflow: auto;
