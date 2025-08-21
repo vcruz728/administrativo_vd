@@ -44,7 +44,6 @@ class OficioController extends Controller
 			$whereDos = " AND id_usuario = ".\Auth::user()->id;
     	}
 
-
     	$oficios = Oficio::select(
     		DB::raw("CASE 
 			WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, oficios.fecha_respuesta, 120) ) < cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NOT NULL THEN '#5fd710'
@@ -79,7 +78,7 @@ class OficioController extends Controller
 			'respuestas_oficio.nombre as destinatario',
 			't3.total_inicial',
 			't4.total_respuesta',
-			'respuestas_oficio.respuesta as asunto',
+			'respuestas_oficio.respuesta as asunto'
     	)
     	->join('cat_des','cat_des.id','oficios.dep_ua')
     	->join('cat_areas','cat_areas.id','oficios.area')
@@ -111,14 +110,18 @@ class OficioController extends Controller
 			'archivo',
 			DB::Raw("COALESCE(respuesta, descripcion) as respuesta"),
 			'masivo',
-			'oficio_respuesta',
+			// 👇 aquí unificamos oficio_respuesta y folio
+			DB::raw("COALESCE(nuevos_oficios.oficio_respuesta, destinatarios_oficio.folio) as oficio_respuesta"),
 			't3.total_nuevo',
 			DB::raw("COALESCE(t1.nombre_desti, 'Grupal') as nombre_desti"),
 			DB::raw("CONCAT( RIGHT('0'+cast(DAY(nuevos_oficios.created_at) as varchar(2)),2) ,' de ', dbo.fn_GetMonthName (nuevos_oficios.created_at, 'Spanish'),' de ',YEAR(nuevos_oficios.created_at),' a las ', CONVERT(VARCHAR(5),nuevos_oficios.created_at,108)) as f_ingreso"),
-			DB::raw("RIGHT(nuevos_oficios.archivo_respuesta, 3) as extension"),
+			DB::raw("RIGHT(nuevos_oficios.archivo_respuesta, 3) as extension")
 		)
 		->join('cat_areas','cat_areas.id','nuevos_oficios.id_area')
-		->leftJoin(DB::raw("(SELECT COUNT(id) as total_nuevo, id_nuevo_oficio FROM archivos_oficios WHERE id_oficio_inicial IS NULL AND id_oficio IS NULL GROUP BY id_nuevo_oficio ) as t3"),'t3.id_nuevo_oficio','nuevos_oficios.id')
+		->leftJoin(DB::raw("(SELECT COUNT(id) as total_nuevo, id_nuevo_oficio 
+                             FROM archivos_oficios 
+                             WHERE id_oficio_inicial IS NULL AND id_oficio IS NULL 
+                             GROUP BY id_nuevo_oficio ) as t3"),'t3.id_nuevo_oficio','nuevos_oficios.id')
 		->leftJoin(DB::raw("(
 		SELECT destinatarios_oficio.id_oficio,
 		CASE 
@@ -127,10 +130,13 @@ class OficioController extends Controller
 		WHEN t1.total > 1 THEN 'Multi Destinatario'
 		ELSE '' END AS nombre_desti
 		FROM destinatarios_oficio 
-		JOIN (SELECT MAX(id) as id, COUNT(id) as total FROM destinatarios_oficio  GROUP BY id_oficio ) as t1 ON t1.id = destinatarios_oficio.id
+		JOIN (SELECT MAX(id) as id, COUNT(id) as total 
+              FROM destinatarios_oficio  
+              GROUP BY id_oficio ) as t1 ON t1.id = destinatarios_oficio.id
 		LEFT JOIN directorios ON directorios.id = destinatarios_oficio.id_usuario
 		LEFT JOIN cat_destinatarios_externos ON cat_destinatarios_externos.id = destinatarios_oficio.id_usuario
 		) as t1"),'nuevos_oficios.id','t1.id_oficio')
+		->leftJoin('destinatarios_oficio','destinatarios_oficio.id_oficio','nuevos_oficios.id') // join con tabla nueva
 		->whereRaw("1=1 $whereDos")
 		->get();
 

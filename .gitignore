@@ -10,6 +10,7 @@
 .phpunit.result.cache
 .htaccess
 /public/.htaccess
+/public/build
 Homestead.json
 Homestead.yaml
 auth.json
