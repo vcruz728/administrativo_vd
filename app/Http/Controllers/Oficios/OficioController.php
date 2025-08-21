@@ -113,12 +113,12 @@ $nuevos = NuevoOficio::select(
     'masivo',
 
     DB::raw("COALESCE(
-                nuevos_oficios.oficio_respuesta, 
-                CASE 
-                  WHEN folios.total = 1 THEN folios.folio 
-                  ELSE folios.folios 
-                END
-            ) as oficio_respuesta"),
+    CAST(nuevos_oficios.oficio_respuesta AS NVARCHAR(MAX)),
+    CASE 
+      WHEN folios.total = 1 THEN CAST(folios.folio AS NVARCHAR(50))
+      ELSE CAST(folios.folios AS NVARCHAR(MAX))
+    END
+) as oficio_respuesta"),
     't3.total_nuevo',
     DB::raw("COALESCE(t1.nombre_desti, 'Grupal') as nombre_desti"),
     DB::raw("CONCAT(
@@ -154,8 +154,8 @@ $nuevos = NuevoOficio::select(
 ->leftJoin(DB::raw("(
     SELECT id_oficio,
            COUNT(folio) as total,
-           STRING_AGG(folio, ', ') as folios,
-           MAX(folio) as folio
+       STRING_AGG(CAST(folio AS NVARCHAR(50)), ', ') as folios,
+       MAX(CAST(folio AS NVARCHAR(50))) as folio
     FROM destinatarios_oficio
     GROUP BY id_oficio
 ) as folios"),'folios.id_oficio','nuevos_oficios.id')
