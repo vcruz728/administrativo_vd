@@ -97,71 +97,42 @@ class OficioController extends Controller
     	$procesos = Procesos::getSelForArea(\Auth::user()->id_area);
 		$usuarios = User::getSel(\Auth::user()->id_area);
 
-$nuevos = NuevoOficio::select(
-    'nuevos_oficios.id',
-    'cat_areas.nombre as area',
-    'nuevos_oficios.nombre as destinatario',
-    'nuevos_oficios.archivo_respuesta',
-    'enviado',
-    'finalizado',
-    'revision',
-    'id_usuario',
-    'descripcion_rechazo_jefe',
-    'descripcion_rechazo_final',
-    'archivo',
-    DB::Raw("COALESCE(respuesta, descripcion) as respuesta"),
-    'masivo',
-
-    DB::raw("COALESCE(
-                nuevos_oficios.oficio_respuesta, 
-                CASE 
-                  WHEN folios.total = 1 THEN folios.folio 
-                  ELSE folios.folios 
-                END
-            ) as oficio_respuesta"),
-    't3.total_nuevo',
-    DB::raw("COALESCE(t1.nombre_desti, 'Grupal') as nombre_desti"),
-    DB::raw("CONCAT(
-                RIGHT('0'+cast(DAY(nuevos_oficios.created_at) as varchar(2)),2),
-                ' de ', dbo.fn_GetMonthName (nuevos_oficios.created_at, 'Spanish'),
-                ' de ', YEAR(nuevos_oficios.created_at),
-                ' a las ', CONVERT(VARCHAR(5),nuevos_oficios.created_at,108)
-            ) as f_ingreso"),
-    DB::raw("RIGHT(nuevos_oficios.archivo_respuesta, 3) as extension")
-)
-->join('cat_areas','cat_areas.id','nuevos_oficios.id_area')
-->leftJoin(DB::raw("(
-    SELECT COUNT(id) as total_nuevo, id_nuevo_oficio 
-    FROM archivos_oficios 
-    WHERE id_oficio_inicial IS NULL AND id_oficio IS NULL 
-    GROUP BY id_nuevo_oficio
-) as t3"),'t3.id_nuevo_oficio','nuevos_oficios.id')
-->leftJoin(DB::raw("(
-    SELECT destinatarios_oficio.id_oficio,
-           CASE 
-             WHEN t1.total = 1 AND destinatarios_oficio.tipo_usuario = 1 THEN directorios.nombre
-             WHEN t1.total = 1 AND destinatarios_oficio.tipo_usuario = 2 THEN cat_destinatarios_externos.nombre
-             WHEN t1.total > 1 THEN 'Multi Destinatario'
-             ELSE '' END AS nombre_desti
-    FROM destinatarios_oficio 
-    JOIN (SELECT MAX(id) as id, COUNT(id) as total 
-          FROM destinatarios_oficio  
-          GROUP BY id_oficio ) as t1 ON t1.id = destinatarios_oficio.id
-    LEFT JOIN directorios ON directorios.id = destinatarios_oficio.id_usuario
-    LEFT JOIN cat_destinatarios_externos ON cat_destinatarios_externos.id = destinatarios_oficio.id_usuario
-) as t1"),'nuevos_oficios.id','t1.id_oficio')
-
-->leftJoin(DB::raw("(
-    SELECT id_oficio,
-           COUNT(folio) as total,
-           STRING_AGG(folio, ', ') as folios,
-           MAX(folio) as folio
-    FROM destinatarios_oficio
-    GROUP BY id_oficio
-) as folios"),'folios.id_oficio','nuevos_oficios.id')
-->whereRaw("1=1 $whereDos")
-->get();
-
+		$nuevos = NuevoOficio::select(
+			'nuevos_oficios.id',
+			'cat_areas.nombre as area',
+			'nuevos_oficios.nombre as destinatario',
+			'nuevos_oficios.archivo_respuesta',
+			'enviado',
+			'finalizado',
+			'revision',
+			'id_usuario',
+			'descripcion_rechazo_jefe',
+			'descripcion_rechazo_final',
+			'archivo',
+			DB::Raw("COALESCE(respuesta, descripcion) as respuesta"),
+			'masivo',
+			'oficio_respuesta',
+			't3.total_nuevo',
+			DB::raw("COALESCE(t1.nombre_desti, 'Grupal') as nombre_desti"),
+			DB::raw("CONCAT( RIGHT('0'+cast(DAY(nuevos_oficios.created_at) as varchar(2)),2) ,' de ', dbo.fn_GetMonthName (nuevos_oficios.created_at, 'Spanish'),' de ',YEAR(nuevos_oficios.created_at),' a las ', CONVERT(VARCHAR(5),nuevos_oficios.created_at,108)) as f_ingreso"),
+			DB::raw("RIGHT(nuevos_oficios.archivo_respuesta, 3) as extension"),
+		)
+		->join('cat_areas','cat_areas.id','nuevos_oficios.id_area')
+		->leftJoin(DB::raw("(SELECT COUNT(id) as total_nuevo, id_nuevo_oficio FROM archivos_oficios WHERE id_oficio_inicial IS NULL AND id_oficio IS NULL GROUP BY id_nuevo_oficio ) as t3"),'t3.id_nuevo_oficio','nuevos_oficios.id')
+		->leftJoin(DB::raw("(
+		SELECT destinatarios_oficio.id_oficio,
+		CASE 
+		WHEN t1.total = 1 AND destinatarios_oficio.tipo_usuario = 1 THEN directorios.nombre
+		WHEN t1.total = 1 AND destinatarios_oficio.tipo_usuario = 2 THEN cat_destinatarios_externos.nombre
+		WHEN t1.total > 1 THEN 'Multi Destinatario'
+		ELSE '' END AS nombre_desti
+		FROM destinatarios_oficio 
+		JOIN (SELECT MAX(id) as id, COUNT(id) as total FROM destinatarios_oficio  GROUP BY id_oficio ) as t1 ON t1.id = destinatarios_oficio.id
+		LEFT JOIN directorios ON directorios.id = destinatarios_oficio.id_usuario
+		LEFT JOIN cat_destinatarios_externos ON cat_destinatarios_externos.id = destinatarios_oficio.id_usuario
+		) as t1"),'nuevos_oficios.id','t1.id_oficio')
+		->whereRaw("1=1 $whereDos")
+		->get();
 
 		if(\Auth::user()->rol == 6){
 			return Inertia::render('Oficios/OficiosAdmin', [
@@ -337,58 +308,35 @@ $nuevos = NuevoOficio::select(
     	->orderBy('id')
     	->get();
 
-	$nuevos = NuevoOficio::select(
-    'nuevos_oficios.id',
-    'cat_areas.nombre as area',
-    'nuevos_oficios.nombre as destinatario',
-    'nuevos_oficios.archivo_respuesta',
-    'enviado',
-    'finalizado',
-    'masivo',
-
-DB::raw("COALESCE(
-    CAST(nuevos_oficios.oficio_respuesta AS VARCHAR(50)),
-    CASE 
-      WHEN folios.total = 1 THEN CAST(folios.folio AS VARCHAR(50)) 
-      ELSE folios.folios 
-    END
-) as oficio_respuesta"),
-    DB::raw("COALESCE(t1.nombre_desti, 'Grupal') as nombre_desti"),
-    DB::raw("CONCAT(
-                RIGHT('0'+cast(DAY(nuevos_oficios.created_at) as varchar(2)),2),
-                ' de ', dbo.fn_GetMonthName (nuevos_oficios.created_at, 'Spanish'),
-                ' de ', YEAR(nuevos_oficios.created_at),
-                ' a las ', CONVERT(VARCHAR(5),nuevos_oficios.created_at,108)
-            ) as f_ingreso"),
-    DB::raw("RIGHT(nuevos_oficios.archivo_respuesta, 3) as extension"),
-    DB::raw("COALESCE(respuesta, descripcion) as respuesta")
-)
-->join('cat_areas','cat_areas.id','nuevos_oficios.id_area')
-->leftJoin(DB::raw("(
-    SELECT destinatarios_oficio.id_oficio,
-           CASE 
-             WHEN t1.total = 1 AND destinatarios_oficio.tipo_usuario = 1 THEN directorios.nombre
-             WHEN t1.total = 1 AND destinatarios_oficio.tipo_usuario = 2 THEN cat_destinatarios_externos.nombre
-             WHEN t1.total > 1 THEN 'Multi Destinatario'
-             ELSE '' END AS nombre_desti
-    FROM destinatarios_oficio 
-    JOIN (SELECT MAX(id) as id, COUNT(id) as total 
-          FROM destinatarios_oficio  
-          GROUP BY id_oficio ) as t1 ON t1.id = destinatarios_oficio.id
-    LEFT JOIN directorios ON directorios.id = destinatarios_oficio.id_usuario
-    LEFT JOIN cat_destinatarios_externos ON cat_destinatarios_externos.id = destinatarios_oficio.id_usuario
-) as t1"),'nuevos_oficios.id','t1.id_oficio')
-
-->leftJoin(DB::raw("(
-    SELECT id_oficio,
-           COUNT(folio) as total,
-           STRING_AGG(folio, ', ') as folios,
-           MAX(folio) as folio
-    FROM destinatarios_oficio
-    GROUP BY id_oficio
-) as folios"),'folios.id_oficio','nuevos_oficios.id')
-->where('finalizado', 1)
-->get();
+		$nuevos = NuevoOficio::select(
+			'nuevos_oficios.id',
+			'cat_areas.nombre as area',
+			'nuevos_oficios.nombre as destinatario',
+			'nuevos_oficios.archivo_respuesta',
+			'enviado',
+			'finalizado',
+			'masivo',
+			'nuevos_oficios.oficio_respuesta',
+			DB::raw("COALESCE(t1.nombre_desti, 'Grupal') as nombre_desti"),
+			DB::raw("CONCAT( RIGHT('0'+cast(DAY(nuevos_oficios.created_at) as varchar(2)),2) ,' de ', dbo.fn_GetMonthName (nuevos_oficios.created_at, 'Spanish'),' de ',YEAR(nuevos_oficios.created_at),' a las ', CONVERT(VARCHAR(5),nuevos_oficios.created_at,108)) as f_ingreso"),
+			DB::raw("RIGHT(nuevos_oficios.archivo_respuesta, 3) as extension"),
+			DB::Raw("COALESCE(respuesta, descripcion) as respuesta"),
+		)
+		->join('cat_areas','cat_areas.id','nuevos_oficios.id_area')
+		->leftJoin(DB::raw("(
+		SELECT destinatarios_oficio.id_oficio,
+		CASE 
+		WHEN t1.total = 1 AND destinatarios_oficio.tipo_usuario = 1 THEN directorios.nombre
+		WHEN t1.total = 1 AND destinatarios_oficio.tipo_usuario = 2 THEN cat_destinatarios_externos.nombre
+		WHEN t1.total > 1 THEN 'Multi Destinatario'
+		ELSE '' END AS nombre_desti
+		FROM destinatarios_oficio 
+		JOIN (SELECT MAX(id) as id, COUNT(id) as total FROM destinatarios_oficio  GROUP BY id_oficio ) as t1 ON t1.id = destinatarios_oficio.id
+		LEFT JOIN directorios ON directorios.id = destinatarios_oficio.id_usuario
+		LEFT JOIN cat_destinatarios_externos ON cat_destinatarios_externos.id = destinatarios_oficio.id_usuario
+		) as t1"),'nuevos_oficios.id','t1.id_oficio')
+		->where('finalizado', 1)
+		->get();
 
     	return Inertia::render('Oficios/OficiosRespuestas', [
             'status' => session('status'),
