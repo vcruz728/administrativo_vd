@@ -172,6 +172,12 @@
             line-height: inherit;
         }
 
+        .dependencia {
+            font-family: 'SourceSansPro';
+            font-weight: bold;
+        }
+
+
     </style>
 </head>
 <body>
@@ -202,11 +208,24 @@
     <div class="content">
     <div><p style="font-family: 'SourceSansPro'; font-style: italic; ">Oficio No. {{ $oficio?->siglas }}/{{ $respuesta?->oficio_respuesta }}/{{ date('Y') }}</p></div>
      <br>
-       <div >
-            <p style="font-family: 'SourceSansPro'; font-weight: bold;">{{ $respuesta?->nombre }}</p>
-            <p style="font-family: 'SourceSansPro'; font-weight: bold;">{{ $respuesta?->cargo }} {{ $respuesta?->dependencia }} de la</p>
-            <p style="font-family: 'SourceSansPro'; font-weight: bold;">Benemérita Universidad Autónoma de Puebla</p>
+       <div style="max-width: 50%;">
+        @switch($tipo_usuario)
+            @case(1)
+                <p class="dependencia">{{ $respuesta?->cargo }} {{ $respuesta?->dependencia }} de la Bemérita Universidad Autónoma de Puebla</p>
+                @break
+
+            @case(2)
+                    <p class="dependencia">{{ $respuesta?->nombre }}</p>
+                    <p class="dependencia">{{ $respuesta?->cargo }} {{ $respuesta?->dependencia }}</p>
+
+                @break
+        @endswitch
+
+        </div>
+
+
             <p style="font-family: 'SourceSansPro'; font-weight: bold;">PRESENTE</p>
+
         </div>
     <br><br>
     <!--  contenido -->

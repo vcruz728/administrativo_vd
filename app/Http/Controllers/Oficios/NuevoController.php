@@ -177,12 +177,12 @@ class NuevoController extends Controller
 			'copias' => $copias,
 			'oficio' => $oficio,
             'respuesta' => $respuesta,
-			'fechaEscrita' => $fechaEscrita
+			'fechaEscrita' => $fechaEscrita,
+			'tipo_usuario' => $tipo_usuario
 		]);
 
-	
-			return $pdf->stream('respuesta_oficio.pdf');
-		
+		return $pdf->stream('respuesta_oficio.pdf');
+
 	}
 
     public function saveNuevo(Request $request){
