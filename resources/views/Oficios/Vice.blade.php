@@ -6,12 +6,10 @@
     <style>
         @page {
             size: letter;
-            margin-top: 2.5cm;
-            margin-left: 2.5cm;
+            margin-top: 4.5cm;
+            margin-left: 4.5cm;
             margin-right: 2.5cm;
             margin-bottom: 2.5cm;
-
-
             
         }
 
@@ -215,7 +213,7 @@
 </div>
     <!--  termina contenido -->
       <br>
-      <br>
+
       
       <p style="font-family: 'SourceSansPro'; font-style: italic;">De antemano agradezco su atención y le reitero la seguridad de mi más distinguida consideración.</p>
 
@@ -229,8 +227,7 @@
             
             <br>
             <br>
-            <br>
-            <br>
+
             
             <p style="font-family: 'SourceSansPro'; font-style: italic;">Dr. José Jaime Vázquez López</p>
             <p style="font-family: 'SourceSansPro'; font-style: italic;">Vicerrector de Docencia</p>
