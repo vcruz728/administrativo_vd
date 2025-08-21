@@ -111,6 +111,54 @@ class RecepcionController extends Controller
 ->whereNotNull('nuevos_oficios.archivo_respuesta')
 ->get();
 
+$nuevos = $nuevos->map(function($item) {
+    if (!empty($item->oficio_respuesta)) {
+        $folios = explode(',', $item->oficio_respuesta);
+        $folios = array_map('trim', $folios);
+        sort($folios, SORT_NUMERIC);
+
+        $rango = [];
+        $inicio = $prev = null;
+
+        foreach ($folios as $folio) {
+            if ($inicio === null) {
+                $inicio = $prev = $folio;
+                continue;
+            }
+
+            if ($folio == $prev + 1) {
+
+                $prev = $folio;
+            } else {
+
+                if ($inicio == $prev) {
+                    $rango[] = $inicio;
+                } else {
+                    $rango[] = "$inicio-$prev";
+                }
+                $inicio = $prev = $folio;
+            }
+        }
+
+
+        if ($inicio !== null) {
+            if ($inicio == $prev) {
+                $rango[] = $inicio;
+            } else {
+                $rango[] = "$inicio-$prev";
+            }
+        }
+
+        if (count($folios) <= 5) {
+            $item->oficio_respuesta = implode(', ', $folios);
+        } else {
+            // Si son muchos, aplicar los rangos
+            $item->oficio_respuesta = implode(', ', $rango);
+        }
+    }
+
+    return $item;
+});
     	return Inertia::render('Oficios/Recepcion', [
             'status' => session('status'),
             'oficios' => $oficios,
