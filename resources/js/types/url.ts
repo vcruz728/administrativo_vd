@@ -146,8 +146,7 @@ export const sunEditorLangEs = {
         code: "Código",
     },
 };
-
-export const appUrl = "http://localhost/vd/public";
+export const appUrl = "https://procesosacademicos.buap.mx/vd/public";
 export const getFullUrl = (path: string): string => {
     if (path.startsWith("http")) {
         return path; // Ya es una URL completa

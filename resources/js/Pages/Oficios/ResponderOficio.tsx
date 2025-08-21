@@ -612,6 +612,9 @@ export default function Recepcion({
                                                         table: "style|width|height|cellpadding|cellspacing|border",
                                                         tr: "style|height|valign",
                                                         td: "style|width|height|colspan|rowspan",
+                                                        p: "style",
+                                                        div: "style",
+                                                        span: "style",
                                                     },
                                                 }}
                                             />

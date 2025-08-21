@@ -114,7 +114,7 @@
         p {
             margin: 0 !important;
             padding: 0 !important;
-            line-height: 0.9 !important;
+
             font-size: 9pt !important;
         }
         
@@ -162,17 +162,16 @@
             font-family: 'SourceSansPro', arial, sans-serif;
             font-size: 9pt;
             color: black;
-            line-height: 1.15;
         }
 
         .contenido-dinamico * {
             font-family: inherit;
             font-size: inherit;
             color: inherit;
-            line-height: inherit;
         }
 
         .dependencia {
+            line-height: 0.9 !important;
             font-family: 'SourceSansPro';
             font-weight: bold;
         }
@@ -230,7 +229,7 @@
         </div>
     <br><br>
     <!--  contenido -->
-<div class="contenido-dinamico" style="text-align: justify;">
+<div class="contenido-dinamico" style="text-align: justify; line-height: 1.5;">
     {!! $respuesta?->respuesta ?? '' !!}
 </div>
     <!--  termina contenido -->
