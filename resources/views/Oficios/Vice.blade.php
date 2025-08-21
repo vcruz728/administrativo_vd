@@ -210,6 +210,7 @@
        <div style="max-width: 60%;">
         @switch($tipo_usuario)
             @case(1)
+                <p class="dependencia">{{ $respuesta?->nombre }}</p>
                 <p class="dependencia">{{ $respuesta?->cargo }} {{ $respuesta?->dependencia }} de la 
                 <p class="dependencia">Benemérita Universidad Autónoma de Puebla</p>
                 @break
