@@ -144,7 +144,12 @@ export default function Recepcion({
                                                     data={activos}
                                                     options={{
                                                         language,
-                                                        order: [],
+                                                        order: [[1, "desc"]],
+                                                        lengthMenu: [
+                                                            [25, 50, 100],
+                                                            [25, 50, 100],
+                                                        ],
+                                                        pageLength: 25,
                                                         buttons: [
                                                             {
                                                                 extend: "excel",
@@ -289,6 +294,12 @@ export default function Recepcion({
                                                     options={{
                                                         language,
                                                         autoWidth: false,
+                                                        order: [[1, "desc"]],
+                                                        lengthMenu: [
+                                                            [25, 50, 100],
+                                                            [25, 50, 100],
+                                                        ],
+                                                        pageLength: 25,
                                                         buttons: [
                                                             {
                                                                 extend: "excel",
@@ -496,6 +507,11 @@ export default function Recepcion({
                                                         language,
                                                         autoWidth: false,
                                                         order: [[0, "desc"]],
+                                                        lengthMenu: [
+                                                            [25, 50, 100],
+                                                            [25, 50, 100],
+                                                        ],
+                                                        pageLength: 25,
                                                         buttons: [
                                                             {
                                                                 extend: "excel",

@@ -439,6 +439,26 @@ const OficiosRespuestas = ({
                                                                         </Button>
                                                                     </Link>
                                                                 )}
+                                                                <Button
+                                                                    className="btn-icon ml-1"
+                                                                    variant="success"
+                                                                    onClick={() => {
+                                                                        setVariables(
+                                                                            {
+                                                                                ...variables,
+                                                                                idOfico:
+                                                                                    row.id,
+                                                                            }
+                                                                        );
+
+                                                                        setShowLinea(
+                                                                            true
+                                                                        );
+                                                                    }}
+                                                                    title="Ver línea de tiempo del oficio"
+                                                                >
+                                                                    <i className="fa fa-history"></i>
+                                                                </Button>
                                                             </div>
                                                         ),
                                                     }}
@@ -511,6 +531,11 @@ const OficiosRespuestas = ({
                                                         language,
                                                         autoWidth: false,
                                                         order: [[1, "desc"]],
+                                                        lengthMenu: [
+                                                            [25, 50, 100],
+                                                            [25, 50, 100],
+                                                        ],
+                                                        pageLength: 25,
                                                         buttons: [
                                                             {
                                                                 extend: "excel",
@@ -694,6 +719,11 @@ const OficiosRespuestas = ({
                                                         language,
                                                         autoWidth: false,
                                                         order: [[0, "desc"]],
+                                                        lengthMenu: [
+                                                            [25, 50, 100],
+                                                            [25, 50, 100],
+                                                        ],
+                                                        pageLength: 25,
                                                     }}
                                                     columns={[
                                                         {
@@ -781,6 +811,11 @@ const OficiosRespuestas = ({
                                                         language,
                                                         autoWidth: false,
                                                         order: [[0, "desc"]],
+                                                        lengthMenu: [
+                                                            [25, 50, 100],
+                                                            [25, 50, 100],
+                                                        ],
+                                                        pageLength: 25,
                                                         buttons: [
                                                             {
                                                                 extend: "excel",
@@ -976,6 +1011,11 @@ const OficiosRespuestas = ({
                                                         language,
                                                         autoWidth: false,
                                                         order: [[0, "desc"]],
+                                                        lengthMenu: [
+                                                            [25, 50, 100],
+                                                            [25, 50, 100],
+                                                        ],
+                                                        pageLength: 25,
                                                         buttons: [
                                                             {
                                                                 extend: "excel",

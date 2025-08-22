@@ -408,6 +408,11 @@ export default function OficiosAdmin({
                                                         language,
                                                         autoWidth: false,
                                                         order: [[1, "desc"]],
+                                                        lengthMenu: [
+                                                            [25, 50, 100],
+                                                            [25, 50, 100],
+                                                        ],
+                                                        pageLength: 25,
                                                         buttons: [
                                                             {
                                                                 extend: "excel",
@@ -624,6 +629,11 @@ export default function OficiosAdmin({
                                                         language,
                                                         autoWidth: false,
                                                         order: [[1, "desc"]],
+                                                        lengthMenu: [
+                                                            [25, 50, 100],
+                                                            [25, 50, 100],
+                                                        ],
+                                                        pageLength: 25,
                                                         buttons: [
                                                             {
                                                                 extend: "excel",
@@ -843,6 +853,11 @@ export default function OficiosAdmin({
                                                         language,
                                                         autoWidth: false,
                                                         order: [[0, "desc"]],
+                                                        lengthMenu: [
+                                                            [25, 50, 100],
+                                                            [25, 50, 100],
+                                                        ],
+                                                        pageLength: 25,
                                                     }}
                                                     columns={[
                                                         {
@@ -930,6 +945,11 @@ export default function OficiosAdmin({
                                                         language,
                                                         autoWidth: false,
                                                         order: [[0, "desc"]],
+                                                        lengthMenu: [
+                                                            [25, 50, 100],
+                                                            [25, 50, 100],
+                                                        ],
+                                                        pageLength: 25,
                                                         buttons: [
                                                             {
                                                                 extend: "excel",
@@ -1060,6 +1080,11 @@ export default function OficiosAdmin({
                                                         language,
                                                         autoWidth: false,
                                                         order: [[0, "desc"]],
+                                                        lengthMenu: [
+                                                            [25, 50, 100],
+                                                            [25, 50, 100],
+                                                        ],
+                                                        pageLength: 25,
                                                         buttons: [
                                                             {
                                                                 extend: "excel",

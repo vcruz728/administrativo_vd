@@ -860,7 +860,8 @@ $nuevos = $nuevos->map(function($item) {
 			'respuesta' => $respuesta,
 			'copias' => $copias,
 			'oficio' => $oficio,
-			'fechaEscrita' => $fechaEscrita
+			'fechaEscrita' => $fechaEscrita,
+			'tipo_usuario' => $tipo_usuario,
 		]);
 
 		if ($guarda == 1) {

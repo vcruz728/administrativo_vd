@@ -407,7 +407,13 @@ export default function Recepcion({
                                                     options={{
                                                         language,
                                                         autoWidth: false,
+
                                                         order: [[1, "desc"]],
+                                                        lengthMenu: [
+                                                            [25, 50, 100],
+                                                            [25, 50, 100],
+                                                        ],
+                                                        pageLength: 25,
                                                         buttons: [
                                                             {
                                                                 extend: "excel",
@@ -661,6 +667,33 @@ export default function Recepcion({
                                                                 >
                                                                     <i className="fa fa-eye"></i>
                                                                 </Button>
+                                                                <Button
+                                                                    className="btn-icon ml-1"
+                                                                    variant="success"
+                                                                    onClick={() => {
+                                                                        setVariables(
+                                                                            {
+                                                                                ...variables,
+                                                                                idOfico:
+                                                                                    row.id,
+                                                                            }
+                                                                        );
+
+                                                                        setShowLinea(
+                                                                            true
+                                                                        );
+                                                                    }}
+                                                                    title="Ver línea de tiempo del oficio"
+                                                                >
+                                                                    <i className="fa fa-history"></i>
+                                                                </Button>
+                                                                <Button
+                                                                    className="btn-icon ml-1"
+                                                                    variant="warning"
+                                                                    title="Marcar como Informativo"
+                                                                >
+                                                                    <i className="fa fa-info-circle"></i>
+                                                                </Button>
                                                             </div>
                                                         ),
                                                     }}
@@ -733,6 +766,11 @@ export default function Recepcion({
                                                         language,
                                                         autoWidth: false,
                                                         order: [[1, "desc"]],
+                                                        lengthMenu: [
+                                                            [25, 50, 100],
+                                                            [25, 50, 100],
+                                                        ],
+                                                        pageLength: 25,
                                                         buttons: [
                                                             {
                                                                 extend: "excel",
@@ -952,6 +990,11 @@ export default function Recepcion({
                                                         language,
                                                         autoWidth: false,
                                                         order: [[0, "desc"]],
+                                                        lengthMenu: [
+                                                            [25, 50, 100],
+                                                            [25, 50, 100],
+                                                        ],
+                                                        pageLength: 25,
                                                     }}
                                                     columns={[
                                                         {
@@ -1039,6 +1082,11 @@ export default function Recepcion({
                                                         language,
                                                         autoWidth: false,
                                                         order: [[0, "desc"]],
+                                                        lengthMenu: [
+                                                            [25, 50, 100],
+                                                            [25, 50, 100],
+                                                        ],
+                                                        pageLength: 25,
                                                         buttons: [
                                                             {
                                                                 extend: "excel",
@@ -1266,6 +1314,11 @@ export default function Recepcion({
                                                         language,
                                                         autoWidth: false,
                                                         order: [[0, "desc"]],
+                                                        lengthMenu: [
+                                                            [25, 50, 100],
+                                                            [25, 50, 100],
+                                                        ],
+                                                        pageLength: 25,
                                                         buttons: [
                                                             {
                                                                 extend: "excel",

@@ -179,9 +179,10 @@ class NuevoController extends Controller
 			'oficio' => $oficio,
             'respuesta' => $respuesta,
 			'fechaEscrita' => $fechaEscrita,
-			'tipo_usuario' => $tipo_usuario
-		]);
+			'tipo_usuario' => $tipo_usuario,
 
+		]);
+       dd($pdf);
 		return $pdf->stream('respuesta_oficio.pdf');
 
 	}
