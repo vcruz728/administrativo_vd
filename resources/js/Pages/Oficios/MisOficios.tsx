@@ -407,6 +407,7 @@ export default function Recepcion({
                                                     options={{
                                                         language,
                                                         autoWidth: false,
+                                                        order: [[1, "desc"]],
                                                         buttons: [
                                                             {
                                                                 extend: "excel",
@@ -731,6 +732,7 @@ export default function Recepcion({
                                                     options={{
                                                         language,
                                                         autoWidth: false,
+                                                        order: [[1, "desc"]],
                                                         buttons: [
                                                             {
                                                                 extend: "excel",
@@ -938,7 +940,7 @@ export default function Recepcion({
                                         </Tab>
                                         <Tab
                                             eventKey="tab3"
-                                            title="Informativos"
+                                            title="Informativos Historicos"
                                         >
                                             <Col
                                                 md={12}
@@ -949,6 +951,7 @@ export default function Recepcion({
                                                     options={{
                                                         language,
                                                         autoWidth: false,
+                                                        order: [[0, "desc"]],
                                                     }}
                                                     columns={[
                                                         {
@@ -1035,6 +1038,7 @@ export default function Recepcion({
                                                     options={{
                                                         language,
                                                         autoWidth: false,
+                                                        order: [[0, "desc"]],
                                                         buttons: [
                                                             {
                                                                 extend: "excel",
@@ -1261,6 +1265,7 @@ export default function Recepcion({
                                                     options={{
                                                         language,
                                                         autoWidth: false,
+                                                        order: [[0, "desc"]],
                                                         buttons: [
                                                             {
                                                                 extend: "excel",

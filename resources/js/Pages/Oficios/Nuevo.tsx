@@ -737,8 +737,14 @@ export default function Nuevo({
                                                                         language,
                                                                         autoWidth:
                                                                             false,
+                                                                        order: [
+                                                                            [
+                                                                                2,
+                                                                                "desc",
+                                                                            ],
+                                                                        ],
                                                                         ordering:
-                                                                            false,
+                                                                            true,
                                                                     }}
                                                                     columns={[
                                                                         {

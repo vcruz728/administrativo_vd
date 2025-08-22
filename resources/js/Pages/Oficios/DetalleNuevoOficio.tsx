@@ -156,6 +156,7 @@ export default function DetalleNuevoOficio({
                                                 options={{
                                                     language,
                                                     autoWidth: false,
+
                                                     ordering: false,
                                                     pageLength: 5,
                                                     lengthMenu: [

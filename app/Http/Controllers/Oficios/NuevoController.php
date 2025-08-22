@@ -166,6 +166,7 @@ class NuevoController extends Controller
 
 		})
 		->where('nuevos_oficios.id', $id)
+
 		->first();
 
 		if($respuesta?->oficio_respuesta === null){

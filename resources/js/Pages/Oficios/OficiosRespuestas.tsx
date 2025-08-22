@@ -319,6 +319,7 @@ const OficiosRespuestas = ({
                                                     options={{
                                                         language,
                                                         autoWidth: false,
+                                                        order: [[1, "desc"]],
                                                         buttons: [
                                                             {
                                                                 extend: "excel",
@@ -509,6 +510,7 @@ const OficiosRespuestas = ({
                                                     options={{
                                                         language,
                                                         autoWidth: false,
+                                                        order: [[1, "desc"]],
                                                         buttons: [
                                                             {
                                                                 extend: "excel",
@@ -680,7 +682,7 @@ const OficiosRespuestas = ({
                                         </Tab>
                                         <Tab
                                             eventKey="tab3"
-                                            title="Informativos"
+                                            title="Informativos Historicos"
                                         >
                                             <Col
                                                 md={12}
@@ -691,6 +693,7 @@ const OficiosRespuestas = ({
                                                     options={{
                                                         language,
                                                         autoWidth: false,
+                                                        order: [[0, "desc"]],
                                                     }}
                                                     columns={[
                                                         {
@@ -777,6 +780,7 @@ const OficiosRespuestas = ({
                                                     options={{
                                                         language,
                                                         autoWidth: false,
+                                                        order: [[0, "desc"]],
                                                         buttons: [
                                                             {
                                                                 extend: "excel",
@@ -971,6 +975,7 @@ const OficiosRespuestas = ({
                                                     options={{
                                                         language,
                                                         autoWidth: false,
+                                                        order: [[0, "desc"]],
                                                         buttons: [
                                                             {
                                                                 extend: "excel",

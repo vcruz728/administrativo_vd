@@ -407,6 +407,7 @@ export default function OficiosAdmin({
                                                     options={{
                                                         language,
                                                         autoWidth: false,
+                                                        order: [[1, "desc"]],
                                                         buttons: [
                                                             {
                                                                 extend: "excel",
@@ -622,6 +623,7 @@ export default function OficiosAdmin({
                                                     options={{
                                                         language,
                                                         autoWidth: false,
+                                                        order: [[1, "desc"]],
                                                         buttons: [
                                                             {
                                                                 extend: "excel",
@@ -829,7 +831,7 @@ export default function OficiosAdmin({
                                         </Tab>
                                         <Tab
                                             eventKey="tab3"
-                                            title="Informativos"
+                                            title="Informativos Historicos"
                                         >
                                             <Col
                                                 md={12}
@@ -840,6 +842,7 @@ export default function OficiosAdmin({
                                                     options={{
                                                         language,
                                                         autoWidth: false,
+                                                        order: [[0, "desc"]],
                                                     }}
                                                     columns={[
                                                         {
@@ -926,6 +929,7 @@ export default function OficiosAdmin({
                                                     options={{
                                                         language,
                                                         autoWidth: false,
+                                                        order: [[0, "desc"]],
                                                         buttons: [
                                                             {
                                                                 extend: "excel",
@@ -1055,6 +1059,7 @@ export default function OficiosAdmin({
                                                     options={{
                                                         language,
                                                         autoWidth: false,
+                                                        order: [[0, "desc"]],
                                                         buttons: [
                                                             {
                                                                 extend: "excel",

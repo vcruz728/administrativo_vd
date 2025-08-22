@@ -90,7 +90,8 @@ class OficioController extends Controller
 		->leftJoin(DB::raw("(SELECT COUNT(id) as total_respuesta, id_oficio  FROM archivos_oficios WHERE id_nuevo_oficio IS  NULL AND id_oficio_inicial IS NULL GROUP BY id_oficio ) as t4"),'t4.id_oficio','oficios.id')
     	->whereRaw("1=1 $where")
 		->orWhere("area", 1)
-    	->orderBy('id')
+		->orderBy('oficios.created_at', 'desc')
+
     	->get();
 
     	
@@ -113,12 +114,12 @@ $nuevos = NuevoOficio::select(
     'masivo',
 
     DB::raw("COALESCE(
-    CAST(nuevos_oficios.oficio_respuesta AS NVARCHAR(MAX)),
-    CASE 
-      WHEN folios.total = 1 THEN CAST(folios.folio AS NVARCHAR(50))
-      ELSE CAST(folios.folios AS NVARCHAR(MAX))
-    END
-) as oficio_respuesta"),
+                nuevos_oficios.oficio_respuesta, 
+                CASE 
+                  WHEN folios.total = 1 THEN folios.folio 
+                  ELSE folios.folios 
+                END
+            ) as oficio_respuesta"),
     't3.total_nuevo',
     DB::raw("COALESCE(t1.nombre_desti, 'Grupal') as nombre_desti"),
     DB::raw("CONCAT(
@@ -154,12 +155,13 @@ $nuevos = NuevoOficio::select(
 ->leftJoin(DB::raw("(
     SELECT id_oficio,
            COUNT(folio) as total,
-       STRING_AGG(CAST(folio AS NVARCHAR(50)), ', ') as folios,
-       MAX(CAST(folio AS NVARCHAR(50))) as folio
+           STRING_AGG(folio, ', ') as folios,
+           MAX(folio) as folio
     FROM destinatarios_oficio
     GROUP BY id_oficio
 ) as folios"),'folios.id_oficio','nuevos_oficios.id')
 ->whereRaw("1=1 $whereDos")
+->OrderBy('nuevos_oficios.created_at', 'desc')
 ->get();
 
 $nuevos = $nuevos->map(function($item) {
@@ -324,6 +326,7 @@ $nuevos = $nuevos->map(function($item) {
 
 		$archivos = ArchivoOficio::select('id','nombre', 'archivo')
 		->where('id_oficio', $id)
+		->OrderBy('oficios.created_at', 'desc')
 		->get()
 		->map(function($archivo) {
 			$extension = pathinfo($archivo->archivo, PATHINFO_EXTENSION);
@@ -382,8 +385,10 @@ $nuevos = $nuevos->map(function($item) {
 		->leftJoin('respuestas_oficio','respuestas_oficio.id_oficio','oficios.id')
     	->where('finalizado', 1)
 		->orWhere('area', 1)
-    	->orderBy('id')
+		->orderBy('oficios.created_at', 'desc')
+
     	->get();
+
 
 	$nuevos = NuevoOficio::select(
     'nuevos_oficios.id',
@@ -436,7 +441,9 @@ DB::raw("COALESCE(
     GROUP BY id_oficio
 ) as folios"),'folios.id_oficio','nuevos_oficios.id')
 ->where('finalizado', 1)
+->orderBy('nuevos_oficios.created_at', 'desc')
 ->get();
+
 $nuevos = $nuevos->map(function($item) {
     if (!empty($item->oficio_respuesta)) {
         $folios = explode(',', $item->oficio_respuesta);
@@ -1157,7 +1164,8 @@ $nuevos = $nuevos->map(function($item) {
 			->leftJoin(DB::raw("(SELECT COUNT(id) as total_respuesta, id_oficio  FROM archivos_oficios WHERE id_nuevo_oficio IS  NULL AND id_oficio_inicial IS NULL GROUP BY id_oficio ) as t4"),'t4.id_oficio','oficios.id')
 			->whereRaw("1=1 $where")
 			->orWhere("area", 1)
-			->orderBy('id')
+->orderBy('oficios.created_at', 'desc')
+
 			->get();
 		
 

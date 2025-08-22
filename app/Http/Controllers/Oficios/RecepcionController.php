@@ -51,7 +51,7 @@ class RecepcionController extends Controller
     	->join('cat_areas','cat_areas.id','oficios.area')
 		->leftJoin('respuestas_oficio','respuestas_oficio.id_oficio','oficios.id')
     	->join('cat_procesos','cat_procesos.id','oficios.proceso_impacta')
-    	->orderBy('oficios.id')
+    	->orderBy('oficios.created_at','desc')
     	->get();
 
 	$nuevos = NuevoOficio::select(
@@ -109,6 +109,7 @@ class RecepcionController extends Controller
     GROUP BY id_oficio
 ) as folios"),'folios.id_oficio','nuevos_oficios.id')
 ->whereNotNull('nuevos_oficios.archivo_respuesta')
+->orderBy('nuevos_oficios.created_at', 'desc')
 ->get();
 
 $nuevos = $nuevos->map(function($item) {

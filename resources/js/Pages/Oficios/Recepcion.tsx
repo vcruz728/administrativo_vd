@@ -495,6 +495,7 @@ export default function Recepcion({
                                                     options={{
                                                         language,
                                                         autoWidth: false,
+                                                        order: [[0, "desc"]],
                                                         buttons: [
                                                             {
                                                                 extend: "excel",
