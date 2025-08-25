@@ -407,7 +407,7 @@ export default function OficiosAdmin({
                                                     options={{
                                                         language,
                                                         autoWidth: false,
-                                                        order: [[1, "desc"]],
+                                                        order: [[2, "desc"]],
                                                         lengthMenu: [
                                                             [25, 50, 100],
                                                             [25, 50, 100],
@@ -427,15 +427,16 @@ export default function OficiosAdmin({
                                                     }}
                                                     columns={[
                                                         {
+                                                            data: "estatus_valor",
+                                                            visible: false, // columna oculta, solo para ordenar
+                                                        },
+                                                        {
                                                             data: "id",
                                                             title: "Estatus",
-
                                                             createdCell(
                                                                 cell,
                                                                 cellData,
-                                                                rowData,
-                                                                row,
-                                                                col
+                                                                rowData
                                                             ) {
                                                                 $(cell).css(
                                                                     "background",
@@ -446,6 +447,7 @@ export default function OficiosAdmin({
                                                                     rowData.color
                                                                 );
                                                             },
+                                                            orderData: [0], // esta sigue ligada a la columna oculta
                                                             width: "5%",
                                                         },
                                                         {

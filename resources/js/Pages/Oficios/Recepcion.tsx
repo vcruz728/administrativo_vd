@@ -144,7 +144,7 @@ export default function Recepcion({
                                                     data={activos}
                                                     options={{
                                                         language,
-                                                        order: [[1, "desc"]],
+                                                        order: [[2, "desc"]],
                                                         lengthMenu: [
                                                             [25, 50, 100],
                                                             [25, 50, 100],
@@ -157,22 +157,23 @@ export default function Recepcion({
                                                                     columns: [
                                                                         1, 2, 3,
                                                                         4, 5, 6,
-                                                                    ], // exporta solo las primeras 8 columnas
+                                                                    ],
                                                                 },
                                                             },
                                                         ],
                                                     }}
                                                     columns={[
                                                         {
+                                                            data: "estatus_valor",
+                                                            visible: false, // columna oculta, solo para ordenar
+                                                        },
+                                                        {
                                                             data: "id",
                                                             title: "Estatus",
-
                                                             createdCell(
                                                                 cell,
                                                                 cellData,
-                                                                rowData,
-                                                                row,
-                                                                col
+                                                                rowData
                                                             ) {
                                                                 $(cell).css(
                                                                     "background",
@@ -183,6 +184,8 @@ export default function Recepcion({
                                                                     rowData.color
                                                                 );
                                                             },
+                                                            orderData: [0], // esta sigue ligada a la columna oculta
+                                                            width: "5%",
                                                         },
                                                         {
                                                             data: "f_ingreso",

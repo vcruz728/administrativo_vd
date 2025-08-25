@@ -103,89 +103,62 @@ class NuevoController extends Controller
 		return Inertia::render('Oficios/Nuevo', ['status' => session('status'), 'error' => session('error'), 'destinatariosOficio' => $destinatarios, 'externos' => $externos, 'oficio' => $oficio,'files' => $archivos, 'directorio' => $directorio, 'copy' => $copy, 'directorioAll' => $directorioAll]);
 	}
 
-    public function exportapdf($id, $id_usuario, $tipo_usuario)
-	{
+public function exportapdf($id, $id_usuario, $tipo_usuario)
+{
+    $fechaENvio = Nuevo::find($id);
 
-		$fechaENvio = Nuevo::find($id);
+    $fecha = $fechaENvio->fecha_envio ?? date('Y-m-d');
+    setlocale(LC_TIME, 'es_ES.UTF-8', 'Spanish_Spain.1252');
+    $fechaEscrita = strftime('%d de %B de %Y', strtotime($fecha));
+    if (strpos($fechaEscrita, '%') !== false) {
+        $meses = [
+            1 => 'enero', 2 => 'febrero', 3 => 'marzo', 4 => 'abril',
+            5 => 'mayo', 6 => 'junio', 7 => 'julio', 8 => 'agosto',
+            9 => 'septiembre', 10 => 'octubre', 11 => 'noviembre', 12 => 'diciembre'
+        ];
+        $fechaEscrita = date('d') . " de " . $meses[intval(date('m'))] . " de " . date('Y');
+    }
 
-		if($fechaENvio->fecha_envio){
-			$fecha = $fechaENvio->fecha_envio;
-		}else{
-			$fecha = date('Y-m-d');
-		}
-		
-		// Obtener la fecha actual en español, ejemplo: 04 de julio de 2025
-		setlocale(LC_TIME, 'es_ES.UTF-8', 'Spanish_Spain.1252');
-		$fechaEscrita = strftime('%d de %B de %Y', strtotime($fecha));
-		// En caso de que strftime no funcione correctamente en Windows, usar una alternativa:
-		if (strpos($fechaEscrita, '%') !== false) {
-			$meses = [
-				1 => 'enero', 2 => 'febrero', 3 => 'marzo', 4 => 'abril',
-				5 => 'mayo', 6 => 'junio', 7 => 'julio', 8 => 'agosto',
-				9 => 'septiembre', 10 => 'octubre', 11 => 'noviembre', 12 => 'diciembre'
-			];
-			$dia = date('d');
-			$mes = $meses[intval(date('m'))];
-			$anio = date('Y');
-			$fechaEscrita = "$dia de $mes de $anio";
-		}
+    $copias = Copia::where('id_nuevo_oficio', $id)->get();
 
-		$copias = Copia::where('id_nuevo_oficio', $id)->get();
-		
-		$oficio = Nuevo::select(
-            'nuevos_oficios.iniciales_area as area',
-            'nuevos_oficios.iniciales_proceso as proceso',
-			'cat_areas.siglas',
-		)
+    $oficio = Nuevo::select(
+        'nuevos_oficios.iniciales_area as area',
+        'nuevos_oficios.iniciales_proceso as proceso',
+        'cat_areas.siglas'
+    )
+    ->join('cat_areas', 'cat_areas.id', 'nuevos_oficios.id_area')
+    ->where('nuevos_oficios.id', $id)
+    ->first();
 
-		->join('cat_areas', 'cat_areas.id', 'nuevos_oficios.id_area')
-		->where('nuevos_oficios.id', $id)
-		->first();
+    $tabla = $tipo_usuario == 1 ? 'directorios' : 'cat_destinatarios_externos';
 
+    $respuesta = Nuevo::select(
+        'nuevos_oficios.oficio_respuesta',
+        "$tabla.nombre",
+        "$tabla.cargo",
+        "$tabla.dependencia",
+        'nuevos_oficios.respuesta',
+        'destinatarios_oficio.folio'
+    )
+    ->join('destinatarios_oficio', function($join) use ($id_usuario, $tipo_usuario, $id) {
+        $join->on("destinatarios_oficio.tipo_usuario",'=', DB::raw($tipo_usuario));
+        $join->on("destinatarios_oficio.id_usuario",'=', DB::raw($id_usuario));
+        $join->on("destinatarios_oficio.id_oficio",'=', DB::raw($id));
+    })
+    ->leftJoin($tabla, "$tabla.id", "=", "destinatarios_oficio.id_usuario")
+    ->where('nuevos_oficios.id', $id)
+    ->first();
 
-		$tabla = $tipo_usuario == 1 ? 'directorios' : 'cat_destinatarios_externos';
+    if ($respuesta && $respuesta->oficio_respuesta === null) {
+        $respuesta->oficio_respuesta = $respuesta->folio;
+    }
 
-        $respuesta = Nuevo::select(
-            'nuevos_oficios.oficio_respuesta',
-            "$tabla.nombre",
-			"$tabla.cargo",
-			"$tabla.dependencia",
-            'nuevos_oficios.respuesta',
-			'destinatarios_oficio.folio'
-		)
-		->leftJoin($tabla, function($join) use ($id_usuario, $tabla)
-		{
-			$join->on("$tabla.id",'=', DB::raw("$id_usuario"));
+    $pdf = Pdf::loadView('Oficios.Vice', compact('copias','oficio','respuesta','fechaEscrita','tipo_usuario'))
+              ->setPaper('letter', 'portrait');
 
-		})
-		->join('destinatarios_oficio', function($join) use ($id_usuario, $tipo_usuario, $id)
-		{
-			$join->on("destinatarios_oficio.tipo_usuario",'=', DB::raw("$tipo_usuario"));
-			$join->on("destinatarios_oficio.id_usuario",'=', DB::raw("$id_usuario"));
-			$join->on("destinatarios_oficio.id_oficio",'=', DB::raw("$id"));
+    return $pdf->stream('respuesta_oficio.pdf');
+}
 
-		})
-		->where('nuevos_oficios.id', $id)
-
-		->first();
-
-		if($respuesta?->oficio_respuesta === null){
-			$respuesta->oficio_respuesta = $respuesta?->folio;
-		}
-        
-
-		$pdf = Pdf::loadView('Oficios.Vice', [
-			'copias' => $copias,
-			'oficio' => $oficio,
-            'respuesta' => $respuesta,
-			'fechaEscrita' => $fechaEscrita,
-			'tipo_usuario' => $tipo_usuario,
-
-		]);
-       dd($pdf);
-		return $pdf->stream('respuesta_oficio.pdf');
-
-	}
 
     public function saveNuevo(Request $request){
 		$request->validate([

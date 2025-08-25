@@ -46,6 +46,16 @@ class OficioController extends Controller
 
 
     	$oficios = Oficio::select(
+						 DB::raw("CASE 
+        WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, oficios.fecha_respuesta, 120)) < cat_areas.minutos_oficio 
+             AND oficios.fecha_respuesta IS NOT NULL THEN 1 -- Verde
+        WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, getdate(), 120)) < cat_areas.minutos_oficio 
+             AND oficios.fecha_respuesta IS NULL THEN 2 -- Amarillo
+        WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, getdate(), 120)) > cat_areas.minutos_oficio 
+             AND oficios.fecha_respuesta IS NULL THEN 3 -- Naranja
+        WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, oficios.fecha_respuesta, 120)) > cat_areas.minutos_oficio 
+             AND oficios.fecha_respuesta IS NOT NULL THEN 4 -- Rojo
+        ELSE 5 END as estatus_valor"),
     		DB::raw("CASE 
 			WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, oficios.fecha_respuesta, 120) ) < cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NOT NULL THEN '#5fd710'
 			WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, getdate(), 120) ) < cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NULL THEN '#f5f233'
@@ -114,12 +124,12 @@ $nuevos = NuevoOficio::select(
     'masivo',
 
     DB::raw("COALESCE(
-                nuevos_oficios.oficio_respuesta, 
-                CASE 
-                  WHEN folios.total = 1 THEN folios.folio 
-                  ELSE folios.folios 
-                END
-            ) as oficio_respuesta"),
+    CAST(nuevos_oficios.oficio_respuesta AS VARCHAR(50)), 
+    CASE 
+      WHEN folios.total = 1 THEN CAST(folios.folio AS VARCHAR(50)) 
+      ELSE folios.folios 
+    END
+) as oficio_respuesta"),
     't3.total_nuevo',
     DB::raw("COALESCE(t1.nombre_desti, 'Grupal') as nombre_desti"),
     DB::raw("CONCAT(
@@ -155,7 +165,7 @@ $nuevos = NuevoOficio::select(
 ->leftJoin(DB::raw("(
     SELECT id_oficio,
            COUNT(folio) as total,
-           STRING_AGG(folio, ', ') as folios,
+           STRING_AGG(CAST(folio as varchar(10)), ', ') as folios,
            MAX(folio) as folio
     FROM destinatarios_oficio
     GROUP BY id_oficio
@@ -326,7 +336,6 @@ $nuevos = $nuevos->map(function($item) {
 
 		$archivos = ArchivoOficio::select('id','nombre', 'archivo')
 		->where('id_oficio', $id)
-		->OrderBy('oficios.created_at', 'desc')
 		->get()
 		->map(function($archivo) {
 			$extension = pathinfo($archivo->archivo, PATHINFO_EXTENSION);
@@ -358,6 +367,16 @@ $nuevos = $nuevos->map(function($item) {
 
 	public function viewOficiosResp(){
 		$oficios = Oficio::select(
+						 DB::raw("CASE 
+        WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, oficios.fecha_respuesta, 120)) < cat_areas.minutos_oficio 
+             AND oficios.fecha_respuesta IS NOT NULL THEN 1 -- Verde
+        WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, getdate(), 120)) < cat_areas.minutos_oficio 
+             AND oficios.fecha_respuesta IS NULL THEN 2 -- Amarillo
+        WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, getdate(), 120)) > cat_areas.minutos_oficio 
+             AND oficios.fecha_respuesta IS NULL THEN 3 -- Naranja
+        WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, oficios.fecha_respuesta, 120)) > cat_areas.minutos_oficio 
+             AND oficios.fecha_respuesta IS NOT NULL THEN 4 -- Rojo
+        ELSE 5 END as estatus_valor"),
     		DB::raw("CASE 
 			WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, oficios.fecha_respuesta, 120) ) < cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NOT NULL THEN '#5fd710'
 			WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, getdate(), 120) ) < cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NULL THEN '#f5f233'
@@ -834,7 +853,7 @@ $nuevos = $nuevos->map(function($item) {
 		}
 
 		$copias = Copia::where('id_oficio', $id)->get();
-		
+
 		$oficio = Oficio::select(
 			'users.iniciales as area',
 			'u.iniciales as proceso',
@@ -861,7 +880,7 @@ $nuevos = $nuevos->map(function($item) {
 			'copias' => $copias,
 			'oficio' => $oficio,
 			'fechaEscrita' => $fechaEscrita,
-			'tipo_usuario' => $tipo_usuario,
+			'tipo_usuario' => 1, //provisional
 		]);
 
 		if ($guarda == 1) {
@@ -1121,6 +1140,16 @@ $nuevos = $nuevos->map(function($item) {
 			
 		
 			$oficios = Oficio::select(
+							 DB::raw("CASE 
+        WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, oficios.fecha_respuesta, 120)) < cat_areas.minutos_oficio 
+             AND oficios.fecha_respuesta IS NOT NULL THEN 1 -- Verde
+        WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, getdate(), 120)) < cat_areas.minutos_oficio 
+             AND oficios.fecha_respuesta IS NULL THEN 2 -- Amarillo
+        WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, getdate(), 120)) > cat_areas.minutos_oficio 
+             AND oficios.fecha_respuesta IS NULL THEN 3 -- Naranja
+        WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, oficios.fecha_respuesta, 120)) > cat_areas.minutos_oficio 
+             AND oficios.fecha_respuesta IS NOT NULL THEN 4 -- Rojo
+        ELSE 5 END as estatus_valor"),
 				DB::raw("CASE 
 				WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, oficios.fecha_respuesta, 120) ) < cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NOT NULL THEN '#5fd710'
 				WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, getdate(), 120) ) < cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NULL THEN '#f5f233'

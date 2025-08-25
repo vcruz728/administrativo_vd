@@ -21,6 +21,16 @@ class RecepcionController extends Controller
     public function index()
 	{
     	$oficios = Oficio::select(
+			 DB::raw("CASE 
+        WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, oficios.fecha_respuesta, 120)) < cat_areas.minutos_oficio 
+             AND oficios.fecha_respuesta IS NOT NULL THEN 1 -- Verde
+        WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, getdate(), 120)) < cat_areas.minutos_oficio 
+             AND oficios.fecha_respuesta IS NULL THEN 2 -- Amarillo
+        WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, getdate(), 120)) > cat_areas.minutos_oficio 
+             AND oficios.fecha_respuesta IS NULL THEN 3 -- Naranja
+        WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, oficios.fecha_respuesta, 120)) > cat_areas.minutos_oficio 
+             AND oficios.fecha_respuesta IS NOT NULL THEN 4 -- Rojo
+        ELSE 5 END as estatus_valor"),
 			DB::raw("CASE 
 			WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, oficios.fecha_respuesta, 120) ) < 4320 AND oficios.fecha_respuesta IS NOT NULL THEN '#5fd710'
 			WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, getdate(), 120) ) < 4320 AND oficios.fecha_respuesta IS NULL THEN '#f5f233'

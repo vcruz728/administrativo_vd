@@ -944,6 +944,7 @@ export default function Recepcion({
                         </Card>
                     </Col>
                 </Row>
+
                 <VerPdf
                     urlPdf={`imprime/pdf/0/${oficio.id}`}
                     show={show}
