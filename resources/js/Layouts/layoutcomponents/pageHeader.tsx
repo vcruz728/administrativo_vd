@@ -1,5 +1,4 @@
 import { Link } from "@inertiajs/react";
-import { getFullUrl } from "../../types/url";
 
 const pageHeader = (props: any) => {
     return (
@@ -11,9 +10,7 @@ const pageHeader = (props: any) => {
                         {props.items.map((value: any, index: any) => {
                             return (
                                 <li key={index} className="breadcrumb-item">
-                                    <Link href={getFullUrl(value.urlHeader)}>
-                                        {value.titulo}
-                                    </Link>
+                                    <a href={value.urlHeader}>{value.titulo}</a>
                                 </li>
                             );
                         })}
