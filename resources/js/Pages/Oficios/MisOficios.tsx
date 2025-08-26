@@ -1,5 +1,5 @@
 import AppLayout from "../../Layouts/app";
-import { Head, Link, useForm, usePage } from "@inertiajs/react";
+import { Head, Link, router, useForm, usePage } from "@inertiajs/react";
 import { useState, Fragment, useRef, FormEventHandler, useEffect } from "react";
 import {
     Card,
@@ -127,6 +127,72 @@ export default function Recepcion({
         );
     }, [nuevos]);
 
+    const formCancelar = useForm<{ motivo: string }>({ motivo: "" });
+
+    const successCancelar = () => {
+        formCancelar.reset();
+        toast("Correcto: Se canceló el oficio.", {
+            style: {
+                padding: "25px",
+                color: "#fff",
+                backgroundColor: "#29bf74",
+            },
+            position: "top-center",
+        });
+    };
+
+    const cancelarOficio = async (row: any) => {
+        const { isConfirmed, value: motivo } = await Swal.fire({
+            title: "¿Cancelar este oficio?",
+            html: "<p>Esta acción no se puede deshacer.</p>",
+            input: "textarea",
+            inputLabel: "Motivo de la cancelación",
+            inputPlaceholder: "Describe brevemente el motivo…",
+            showDenyButton: true,
+            showCancelButton: false,
+            confirmButtonText: "Sí, cancelar",
+            denyButtonText: "No, volver",
+            icon: "warning",
+            customClass: { container: "swalSuperior" },
+            focusConfirm: false,
+
+            preConfirm: (v) => {
+                const t = (v ?? "").toString().trim();
+                if (t.length < 3) {
+                    Swal.showValidationMessage(
+                        "Escribe un motivo (mínimo 3 caracteres)"
+                    );
+                    return false;
+                }
+                return t;
+            },
+        });
+
+        if (!isConfirmed) return;
+
+        router.post(
+            route("oficios.cancelarNuevo", { id: row.id }),
+            { motivo },
+            {
+                preserveScroll: true,
+                onSuccess: () =>
+                    toast("Correcto: Se canceló el oficio.", {
+                        style: {
+                            padding: "25px",
+                            color: "#fff",
+                            backgroundColor: "#29bf74",
+                        },
+                        position: "top-center",
+                    }),
+                onError: (errors: any) =>
+                    Swal.fire(
+                        "Error",
+                        errors?.message ?? "No se pudo cancelar el oficio.",
+                        "error"
+                    ),
+            }
+        );
+    };
     const formResponsable = useForm({
         id: "",
         proceso_impacta: "",
@@ -1137,39 +1203,42 @@ export default function Recepcion({
                                                     className="display table-bordered  border-bottom ancho100"
                                                     slots={{
                                                         4: (
-                                                            data: any,
+                                                            _data: any,
                                                             row: any
                                                         ) => (
-                                                            <div className="text-center">
+                                                            <div className="d-flex justify-content-center align-items-center gap-2 flex-nowrap">
+                                                                {/* Revisar respuesta (ejemplo con zmdi) */}
                                                                 {row.revision >
                                                                     0 &&
-                                                                row.finalizado ===
-                                                                    null &&
-                                                                user.rol == 3 &&
-                                                                row.id_usuario !==
-                                                                    null ? (
-                                                                    <Link
-                                                                        href={route(
-                                                                            "viewRespNuevoOficio",
-                                                                            {
-                                                                                id: row.id,
-                                                                            }
-                                                                        )}
-                                                                    >
-                                                                        <Button
-                                                                            className="btn-icon btn btn-warning mr-1"
-                                                                            variant="primary"
-                                                                            title="Revisar respuesta"
+                                                                    row.finalizado ===
+                                                                        null &&
+                                                                    user.rol ==
+                                                                        3 &&
+                                                                    row.id_usuario !==
+                                                                        null && (
+                                                                        <Link
+                                                                            href={route(
+                                                                                "viewRespNuevoOficio",
+                                                                                {
+                                                                                    id: row.id,
+                                                                                }
+                                                                            )}
                                                                         >
-                                                                            <i className="zmdi zmdi-pin-account"></i>{" "}
-                                                                        </Button>
-                                                                    </Link>
-                                                                ) : null}
+                                                                            <Button
+                                                                                className="action-btn"
+                                                                                variant="warning"
+                                                                                title="Revisar respuesta"
+                                                                            >
+                                                                                <i className="zmdi zmdi-pin-account" />
+                                                                            </Button>
+                                                                        </Link>
+                                                                    )}
 
-                                                                {row.archivo_respuesta ===
-                                                                null ? null : (
+                                                                {/* Ver confirmación PDF */}
+                                                                {row.archivo_respuesta !==
+                                                                    null && (
                                                                     <Button
-                                                                        className="btn-icon btn btn-warning mr-1"
+                                                                        className="action-btn"
                                                                         variant="danger"
                                                                         title="Ver confirmación de recibido"
                                                                         onClick={() => {
@@ -1186,82 +1255,85 @@ export default function Recepcion({
                                                                             );
                                                                         }}
                                                                     >
-                                                                        <i className="fa fa-file-pdf-o"></i>
+                                                                        <i className="fa fa-file-pdf-o" />
                                                                     </Button>
                                                                 )}
 
+                                                                {/* Editar */}
                                                                 {user.rol ==
                                                                     3 &&
-                                                                row.id_usuario ===
-                                                                    null &&
-                                                                row.finalizado ===
-                                                                    null &&
-                                                                row.enviado ===
-                                                                    null ? (
-                                                                    <Link
-                                                                        href={route(
-                                                                            "nuevoOficio",
-                                                                            {
-                                                                                id: row.id,
-                                                                            }
-                                                                        )}
-                                                                        style={{
-                                                                            color: "white",
-                                                                        }}
-                                                                    >
-                                                                        <Button
-                                                                            className="btn-icon btn btn-warning mr-1"
-                                                                            variant={
-                                                                                row.descripcion_rechazo_final !==
-                                                                                null
-                                                                                    ? "danger"
-                                                                                    : "warning"
-                                                                            }
-                                                                            title="editar el oficio"
+                                                                    row.id_usuario ===
+                                                                        null &&
+                                                                    row.finalizado ===
+                                                                        null &&
+                                                                    row.enviado ===
+                                                                        null && (
+                                                                        <Link
+                                                                            href={route(
+                                                                                "nuevoOficio",
+                                                                                {
+                                                                                    id: row.id,
+                                                                                }
+                                                                            )}
+                                                                            style={{
+                                                                                color: "white",
+                                                                            }}
                                                                         >
-                                                                            <i className="fa fa-mail-reply"></i>
-                                                                        </Button>
-                                                                    </Link>
-                                                                ) : null}
+                                                                            <Button
+                                                                                className="action-btn"
+                                                                                variant={
+                                                                                    row.descripcion_rechazo_final !==
+                                                                                    null
+                                                                                        ? "danger"
+                                                                                        : "warning"
+                                                                                }
+                                                                                title="Editar oficio"
+                                                                            >
+                                                                                <i className="fa fa-mail-reply" />
+                                                                            </Button>
+                                                                        </Link>
+                                                                    )}
 
+                                                                {/* Editar (rol 4) */}
                                                                 {user.rol ==
                                                                     4 &&
-                                                                row.id_usuario !==
-                                                                    null &&
-                                                                row.finalizado ===
-                                                                    null &&
-                                                                row.enviado ===
-                                                                    null &&
-                                                                row.revision ===
-                                                                    0 ? (
-                                                                    <Link
-                                                                        href={route(
-                                                                            "nuevoOficio",
-                                                                            {
-                                                                                id: row.id,
-                                                                            }
-                                                                        )}
-                                                                        style={{
-                                                                            color: "white",
-                                                                        }}
-                                                                    >
-                                                                        <Button
-                                                                            className="btn-icon btn btn-warning mr-1"
-                                                                            variant={
-                                                                                row.descripcion_rechazo_final !==
-                                                                                    null ||
-                                                                                row.descripcion_rechazo_jefe !==
-                                                                                    null
-                                                                                    ? "danger"
-                                                                                    : "warning"
-                                                                            }
-                                                                            title="editar el oficio"
+                                                                    row.id_usuario !==
+                                                                        null &&
+                                                                    row.finalizado ===
+                                                                        null &&
+                                                                    row.enviado ===
+                                                                        null &&
+                                                                    row.revision ===
+                                                                        0 && (
+                                                                        <Link
+                                                                            href={route(
+                                                                                "nuevoOficio",
+                                                                                {
+                                                                                    id: row.id,
+                                                                                }
+                                                                            )}
+                                                                            style={{
+                                                                                color: "white",
+                                                                            }}
                                                                         >
-                                                                            <i className="fa fa-mail-reply"></i>
-                                                                        </Button>
-                                                                    </Link>
-                                                                ) : null}
+                                                                            <Button
+                                                                                className="action-btn"
+                                                                                variant={
+                                                                                    row.descripcion_rechazo_final !==
+                                                                                        null ||
+                                                                                    row.descripcion_rechazo_jefe !==
+                                                                                        null
+                                                                                        ? "danger"
+                                                                                        : "warning"
+                                                                                }
+                                                                                title="Editar oficio"
+                                                                            >
+                                                                                <i className="fa fa-mail-reply" />
+                                                                            </Button>
+                                                                        </Link>
+                                                                    )}
 
+                                                                {/* Ver detalle */}
                                                                 <Link
                                                                     href={route(
                                                                         "oficios.detalleNuevo",
@@ -1271,13 +1343,39 @@ export default function Recepcion({
                                                                     )}
                                                                 >
                                                                     <Button
-                                                                        className="btn-icon "
+                                                                        className="action-btn"
                                                                         variant="danger"
                                                                         title="Ver detalle del oficio"
                                                                     >
-                                                                        <i className="fa fa-eye"></i>
+                                                                        <i className="fa fa-eye" />
                                                                     </Button>
                                                                 </Link>
+                                                                {/* Cancelar */}
+
+                                                                {(user.rol ==
+                                                                    3 ||
+                                                                    user.rol ==
+                                                                        4) &&
+                                                                    row.finalizado ===
+                                                                        null &&
+                                                                    row.enviado ===
+                                                                        null && (
+                                                                        <Button
+                                                                            className="action-btn"
+                                                                            variant="danger"
+                                                                            title="Cancelar oficio"
+                                                                            onClick={() =>
+                                                                                cancelarOficio(
+                                                                                    row
+                                                                                )
+                                                                            }
+                                                                            disabled={
+                                                                                formCancelar.processing
+                                                                            } // evita doble click
+                                                                        >
+                                                                            <i className="fa fa-ban" />
+                                                                        </Button>
+                                                                    )}
                                                             </div>
                                                         ),
                                                     }}

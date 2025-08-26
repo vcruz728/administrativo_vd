@@ -29,20 +29,20 @@ Route::middleware('auth')->group(function () {
 
 Route::middleware('auth')->group(function () {
     // Rutas generales
-	Route::get('/peticiones/get/procesos-por-area/{id}',  [PeticionesController::class, 'getProcesos'])->name('getProcesosPorArea');
+    Route::get('/peticiones/get/procesos-por-area/{id}',  [PeticionesController::class, 'getProcesos'])->name('getProcesosPorArea');
     Route::get('/peticiones/get/usuarios-por-proceso/{id_area}/{id}', [PeticionesController::class, 'getUsersProcesos']);
     Route::get('/oficios/get/linea-tiempo/{id}', [PeticionesController::class, 'getLineaTiempo'])->name('oficios.getLineaTiempo');
     Route::get('/peticiones/get/detalle-directorio/{id}/{tipo}', [PeticionesController::class, 'getDetalleDirectorio'])->name('getDetalleDirectorio');
-    Route::get('/files/imprime/pdf/0/{id}', [OficioController::class,'exportapdf']);
+    Route::get('/files/imprime/pdf/0/{id}', [OficioController::class, 'exportapdf']);
 
     Route::post('/oficios/subir/archivos/{id}', [OficioController::class, 'uploadFiles'])->name('uploadFilesOficio');
     Route::delete('/oficios/elimina/archivo', [OficioController::class, 'deleteFile'])->name('deleteFileOficio');
 
-    
+
     // Oficio VD
     Route::get('/oficios/get/archivos-adjuntos/{id}/{tipo}', [OficioController::class, 'getArchivosAdjuntos'])->name('oficios.getArchivosAdjuntos');
     Route::get('/oficios/nuevo-oficio/{id}', [NuevoController::class, 'index'])->name('nuevoOficio');
-    Route::get('/files/imprime/nuevo/pdf/{id}/{id_usuario}/{tipo}', [NuevoController::class,'exportapdf']);
+    Route::get('/files/imprime/nuevo/pdf/{id}/{id_usuario}/{tipo}', [NuevoController::class, 'exportapdf']);
     Route::post('/oficios/guarda/nuevo-oficio', [NuevoController::class, 'saveNuevo'])->name('saveNuevoOficio');
 
     Route::get('/oficios/nuevo/descargar-archivos-adjuntos/{id}/{tipo}', [NuevoController::class, 'downloadFiles'])->name('oficios.downloadFilesNew');
@@ -55,7 +55,7 @@ Route::middleware('auth')->group(function () {
     Route::post('oficios/nuevo/guarda/destinatario', [NuevoController::class, 'saveDestinatario'])->name('oficios.saveDestinatarioNuevo');
     Route::delete('oficios/nuevo/elimina/destinatario/{id}', [NuevoController::class, 'deleteDestinatario'])->name('oficios.delDestinatario');
     Route::get('/oficios/nuevo/detalle/{id}', [NuevoController::class, 'detalleOficio'])->name('oficios.detalleNuevo');
-
+    Route::post('/oficios/nuevo/cancelar/{id}', [NuevoController::class, 'cancelar'])->name('oficios.cancelarNuevo');
     Route::get('/oficios/get/estatus/{valor}/{tipo}', [OficioController::class, 'getEstatus'])->name('oficios.getEstatus');
     Route::get('/oficios/nuevo/confirmaciones-de-recibido/{id}', [NuevoController::class, 'subeConfirmacionRecibidos'])->name('oficios.confirmaRecibidosNuevos');
 
@@ -69,7 +69,7 @@ Route::middleware('auth')->group(function () {
     // Rutas para Rol de recepción
     Route::middleware('RolCheck:1,2')->group(function () {
         //Oficios
-    	Route::get('/oficios/listado-oficio',  [RecepcionController::class, 'index'])->name('listadoOficio');
+        Route::get('/oficios/listado-oficio',  [RecepcionController::class, 'index'])->name('listadoOficio');
         Route::get('/oficios/recepcion-oficio',  [RecepcionController::class, 'altaOficio'])->name('oficios.recepcionOficio');
         Route::get('/oficios/modifica-oficio/{id}', [RecepcionController::class, 'altaOficio'])->name('oficios.modificaOficio');
         Route::post('/oficios/recepcion-oficio/save',  [RecepcionController::class, 'save'])->name('saveOficio');
@@ -84,22 +84,21 @@ Route::middleware('auth')->group(function () {
         //Oficios
         Route::post('/oficio/asigna-responsable', [OficioController::class, 'asignaResp'])->name('oficioAsignaResponsable');
     });
-    
+
     // Rutas para el Rol colaborador
     Route::middleware('RolCheck:1,4')->group(function () {
         //Oficios
         Route::post('/oficios/proceso/rechazo', [OficioController::class, 'rechazaOFicio'])->name('rechazaOFicio');
     });
-    
-    
+
+
     //Rutas Compartidas Jefe de area y colaborador
     Route::middleware('RolCheck:1,3,4,6')->group(function () {
         //Oficios
         Route::get('/oficios/mis-oficios',  [OficioController::class, 'index'])->name('misOficios');
         Route::put('/oficios/area/responde/{id}', [OficioController::class, 'respOficio'])->name('respondeOFicio');
-        
     });
-    
+
     //Rutas Compartidas Jefe de area y asistente
     Route::middleware('RolCheck:1,3,5')->group(function () {
         //Oficios
@@ -112,13 +111,13 @@ Route::middleware('auth')->group(function () {
         Route::put('/oficios/nuevo/autoriza/respuesta/{id}', [NuevoController::class, 'aceptResp'])->name('aceptRespNuevo');
         Route::put('/oficios/nuevo/rechaza/respuesta', [NuevoController::class, 'rechazarResp'])->name('rechazarRespNuevo');
     });
-    
-    
+
+
     //Rutas Compartidas Jefe de area, colaborador y asistente
     Route::middleware('RolCheck:1,3,4,5')->group(function () {
         //Oficios
-        Route::get('/oficios/detalle/respuesta/{id}', [OficioController::class ,'detailResp']);
-        Route::get('/oficios/responder/{id}', [OficioController::class ,'indexResp'])->name('oficioResponder');
+        Route::get('/oficios/detalle/respuesta/{id}', [OficioController::class, 'detailResp']);
+        Route::get('/oficios/responder/{id}', [OficioController::class, 'indexResp'])->name('oficioResponder');
         Route::post('/oficios/copia/save', [OficioController::class, 'saveCopias'])->name('saveCopiasOficio');
         Route::delete('/oficios/copia/{id}', [OficioController::class, 'deleteCopias'])->name('deleteCopiasOficio');
         Route::post('/oficios/save/respuesta', [OficioController::class, 'saveResp'])->name('saveRespuesta');
@@ -128,14 +127,11 @@ Route::middleware('auth')->group(function () {
     //Rutas Para rol Asistente
     Route::middleware('RolCheck:1,5')->group(function () {
         //Oficios
-        Route::get('/oficios/respuestas', [OficioController::class, 'viewOficiosResp'])->name('oficiosRespuestas');        
+        Route::get('/oficios/respuestas', [OficioController::class, 'viewOficiosResp'])->name('oficiosRespuestas');
         Route::post('/oficios/sube-evidencia-recibido', [OficioController::class, 'subeEvidenciaRecibido'])->name('subeEvidenciaRecibido');
         Route::post('Oficios/actualiza-fecha', [OficioController::class, 'actualizaFecha'])->name('oficios.cambiaFecha');
         Route::post('/oficios/nuevo/actualiza-fecha', [NuevoController::class, 'actualizaFecha'])->name('oficios.cambiaFechaNuevo');
-
     });
-
-
 });
 
 
@@ -143,4 +139,4 @@ Route::get('/files/{carpeta}/{path}', FilesController::class)->middleware('auth'
 
 
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

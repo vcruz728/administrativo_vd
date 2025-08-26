@@ -128,7 +128,7 @@ class OficioController extends Controller
         END AS nombre_desti
     ");
 
-		/** Agregado de archivos del nuevo oficio (excluye eliminados si aplica) */
+
 		$t3 = DB::table('archivos_oficios as a')
 			->whereNull('a.id_oficio_inicial')
 			->whereNull('a.id_oficio')
