@@ -162,7 +162,7 @@ class OficioController extends Controller
                 END
             ) AS oficio_respuesta
         "),
-				DB::raw("COALESCE(dest.nombre_desti, 'Grupal') AS nombre_desti"),
+				DB::raw("COALESCE(dest.nombre_desti, '') AS nombre_desti"),
 				DB::raw("
             CONCAT(
                 RIGHT('0' + CAST(DAY(nuevos_oficios.created_at) AS varchar(2)), 2),
