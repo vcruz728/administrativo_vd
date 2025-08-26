@@ -21,32 +21,38 @@ use App\Mail\Oficios\RechazoRespuestaJefe;
 use App\Mail\Oficios\RechazoRespuestaFinal;
 use Illuminate\Support\Facades\Mail;
 use App\Models\Oficios\DestinatarioOficio;
-use DB;
-
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class NuevoController extends Controller
 {
+
+
 	public function index($id)
 	{
 		$oficio  = Nuevo::find($id);
 
-		$directorio = Directorio::select('id as value', 'nombre as label')->whereNotIn('id', function ($query) use ($id) {
-			$query->select('id_directorio')->from('oficios_copias')->where('id_nuevo_oficio', $id)->whereNotNull('id_directorio');
-		})->orderBy('nombre')->get();
+		$directorio = Directorio::select('id as value', 'nombre as label')
+			->whereNotIn('id', function ($query) use ($id) {
+				$query->select('id_directorio')
+					->from('oficios_copias')
+					->where('id_nuevo_oficio', $id)
+					->whereNotNull('id_directorio');
+			})
+			->orderBy('nombre')
+			->get();
 
-		$copy = Copia::select('id', 'id_nuevo_oficio', 'id_directorio', 'nombre', 'cargo', 'dependencia')->where('id_nuevo_oficio', $id)->get();
+		$copy = Copia::select('id', 'id_nuevo_oficio', 'id_directorio', 'nombre', 'cargo', 'dependencia')
+			->where('id_nuevo_oficio', $id)
+			->get();
 
 		$archivos = ArchivoOficio::where('id_nuevo_oficio', $id)
 			->get()
 			->map(function ($archivo) {
 				$extension = pathinfo($archivo->archivo, PATHINFO_EXTENSION);
-
-				if ($extension == "pdf" || $extension == "jpg" || $extension == "jpeg" || $extension == "png") {
-					$url = $archivo->archivo;
-				} else {
-					$url = asset("files/" . $archivo->archivo);
-				}
-
+				$url = in_array($extension, ['pdf', 'jpg', 'jpeg', 'png'])
+					? $archivo->archivo
+					: asset("files/" . $archivo->archivo);
 
 				return [
 					'serverId' => $archivo->id,
@@ -68,15 +74,30 @@ class NuevoController extends Controller
 				];
 			});
 
+		// ====== AQUÍ EL CAMBIO IMPORTANTE ======
+		$areaId = Auth::user()->id_area ?? null;
 
-		$externos = DestinatarioExterno::select('id as value', 'nombre as label')->whereNotIn('id', function ($query) use ($id) {
-			$query->select('id_usuario')->from('destinatarios_oficio')->where('id_oficio', $id)->where('tipo_usuario', 2)->get();
-		})->orderBy('nombre')->get();
+		$externos = DestinatarioExterno::select('id as value', 'nombre as label')
+			->when($areaId, fn($q) => $q->where('id_area', $areaId)) // filtra por el área del usuario
+			->whereNotIn('id', function ($query) use ($id) {
+				$query->select('id_usuario')
+					->from('destinatarios_oficio')
+					->where('id_oficio', $id)
+					->where('tipo_usuario', 2); // externos
+			})
+			->orderBy('nombre')
+			->get();
+		// =======================================
 
-		$directorioAll = Directorio::select('id as value', 'nombre as label')->whereNotIn('id', function ($query) use ($id) {
-			$query->select('id_usuario')->from('destinatarios_oficio')->where('id_oficio', $id)->where('tipo_usuario', 1);
-		})->orderBy('nombre')->get();
-
+		$directorioAll = Directorio::select('id as value', 'nombre as label')
+			->whereNotIn('id', function ($query) use ($id) {
+				$query->select('id_usuario')
+					->from('destinatarios_oficio')
+					->where('id_oficio', $id)
+					->where('tipo_usuario', 1); // internos
+			})
+			->orderBy('nombre')
+			->get();
 
 		$destinatarios = DestinatarioOficio::select(
 			'destinatarios_oficio.id',
@@ -87,18 +108,28 @@ class NuevoController extends Controller
 			'destinatarios_oficio.id_usuario'
 		)
 			->leftJoin('directorios', function ($join) {
-				$join->on('destinatarios_oficio.tipo_usuario', '=', DB::raw("1"));
-				$join->on('destinatarios_oficio.id_usuario', '=', 'directorios.id');
+				$join->on('destinatarios_oficio.tipo_usuario', '=', DB::raw("1"))
+					->on('destinatarios_oficio.id_usuario', '=', 'directorios.id');
 			})
 			->leftJoin('cat_destinatarios_externos', function ($join) {
-				$join->on('destinatarios_oficio.tipo_usuario', '=', DB::raw("2"));
-				$join->on('destinatarios_oficio.id_usuario', '=', 'cat_destinatarios_externos.id');
+				$join->on('destinatarios_oficio.tipo_usuario', '=', DB::raw("2"))
+					->on('destinatarios_oficio.id_usuario', '=', 'cat_destinatarios_externos.id');
 			})
 			->where('destinatarios_oficio.id_oficio', $id)
 			->orderBy('destinatarios_oficio.id', 'desc')
 			->get();
 
-		return Inertia::render('Oficios/Nuevo', ['status' => session('status'), 'error' => session('error'), 'destinatariosOficio' => $destinatarios, 'externos' => $externos, 'oficio' => $oficio, 'files' => $archivos, 'directorio' => $directorio, 'copy' => $copy, 'directorioAll' => $directorioAll]);
+		return Inertia::render('Oficios/Nuevo', [
+			'status' => session('status'),
+			'error' => session('error'),
+			'destinatariosOficio' => $destinatarios,
+			'externos' => $externos,
+			'oficio' => $oficio,
+			'files' => $archivos,
+			'directorio' => $directorio,
+			'copy' => $copy,
+			'directorioAll' => $directorioAll
+		]);
 	}
 
 	public function exportapdf($id, $id_usuario, $tipo_usuario)
