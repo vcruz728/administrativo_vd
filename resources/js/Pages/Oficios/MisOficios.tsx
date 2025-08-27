@@ -39,6 +39,7 @@ window.JSZip = JSZip;
 // Importa los botones de DataTables
 import "datatables.net-buttons-bs5";
 import "datatables.net-buttons/js/buttons.html5.js";
+import "../../../css/botones.css";
 
 DataTable.use(DT);
 
