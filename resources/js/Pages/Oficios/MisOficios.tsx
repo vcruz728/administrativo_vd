@@ -193,6 +193,118 @@ export default function Recepcion({
             }
         );
     };
+
+    const marcarComoInformativo = async (row: any) => {
+        // 1) Confirmación inicial
+        const first = await Swal.fire({
+            title: "¿Marcar como informativo?",
+            html: "Esta acción <b>no se puede deshacer</b>.",
+            icon: "warning",
+            showCancelButton: false,
+            showDenyButton: true,
+            confirmButtonText: "Sí",
+            denyButtonText: "No",
+            cancelButtonText: "Cancelar",
+            reverseButtons: false,
+            allowOutsideClick: false,
+            customClass: { container: "swalSuperior" },
+        });
+
+        if (first.isDismissed) return; // Cancelar
+        if (first.isDenied) {
+            await Swal.fire(
+                "Acción cancelada",
+                "No se marcó como informativo.",
+                "info"
+            );
+            return;
+        }
+
+        // 2) ¿Requiere atención?
+        const second = await Swal.fire({
+            title: "¿El oficio requiere atención?",
+            icon: "question",
+            showCancelButton: false,
+            showDenyButton: true,
+            confirmButtonText: "Sí",
+            denyButtonText: "No",
+            cancelButtonText: "Cancelar",
+            reverseButtons: false,
+            allowOutsideClick: false,
+            customClass: { container: "swalSuperior" },
+        });
+
+        if (second.isDismissed) return; // Cancelar
+
+        const requiere_atencion = second.isConfirmed; // Sí -> true, No -> false
+
+        // Mensaje previo según elección
+        if (requiere_atencion) {
+            await Swal.fire(
+                "Informativo con atención",
+                "El oficio se mantendrá en 'Activos' pero no afectará el semáforo de atención.",
+                "info"
+            );
+        } else {
+            await Swal.fire(
+                "Movido a Informativos Históricos",
+                "El oficio se moverá a 'Informativos Históricos' para futuras consultas.",
+                "info"
+            );
+        }
+
+        // 3) POST al backend
+        router.post(
+            route("oficios.marcarInformativo", { id: row.id }),
+            { requiere_atencion },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    toast("Oficio marcado como informativo.", {
+                        style: {
+                            padding: "25px",
+                            color: "#fff",
+                            backgroundColor: "#29bf74",
+                        },
+                        position: "top-center",
+                    });
+
+                    // Actualización optimista de pestañas sin recargar:
+                    if (!requiere_atencion) {
+                        // Si NO requiere atención => sácalo de Activos y mándalo a Informativos
+                        setActivos((prev: any[] | undefined) =>
+                            (prev ?? []).filter((o) => o.id !== row.id)
+                        );
+                        setInformativos((prev: any[] | undefined) => [
+                            ...(prev ?? []),
+                            { ...row, informativo: 1, requiere_atencion: 0 },
+                        ]);
+                    } else {
+                        // Si SÍ requiere atención => permanece en Activos pero "no cuenta" para semáforo
+                        setActivos((prev: any[] | undefined) =>
+                            (prev ?? []).map((o) =>
+                                o.id === row.id
+                                    ? {
+                                          ...o,
+                                          informativo: 1,
+                                          requiere_atencion: 1,
+                                      }
+                                    : o
+                            )
+                        );
+                    }
+                },
+                onError: (errors: any) => {
+                    Swal.fire(
+                        "Error",
+                        errors?.message ?? "No se pudo completar la acción.",
+                        "error"
+                    );
+                },
+            }
+        );
+    };
+
     const formResponsable = useForm({
         id: "",
         proceso_impacta: "",
@@ -757,8 +869,13 @@ export default function Recepcion({
                                                                 </Button>
                                                                 <Button
                                                                     className="btn-icon ml-1"
-                                                                    variant="warning"
+                                                                    variant="info"
                                                                     title="Marcar como Informativo"
+                                                                    onClick={() =>
+                                                                        marcarComoInformativo(
+                                                                            row
+                                                                        )
+                                                                    }
                                                                 >
                                                                     <i className="fa fa-info-circle"></i>
                                                                 </Button>

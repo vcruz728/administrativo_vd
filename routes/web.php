@@ -97,6 +97,8 @@ Route::middleware('auth')->group(function () {
         //Oficios
         Route::get('/oficios/mis-oficios',  [OficioController::class, 'index'])->name('misOficios');
         Route::put('/oficios/area/responde/{id}', [OficioController::class, 'respOficio'])->name('respondeOFicio');
+        Route::post('oficios/{id}/marcar-informativo', [OficioController::class, 'marcarInformativo'])
+            ->name('oficios.marcarInformativo');
     });
 
     //Rutas Compartidas Jefe de area y asistente
@@ -106,6 +108,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/oficios/descargar-archivos-adjuntos/{id}', [OficioController::class, 'downloadFiles'])->name('oficios.downloadFiles');
         Route::put('/oficios/rechaza/respuesta', [OficioController::class, 'rechazarResp'])->name('rechazarResp');
         Route::put('/oficios/autoriza/respuesta/{id}', [OficioController::class, 'aceptResp'])->name('oficios.aceptResp');
+
 
         Route::get('/oficios/nuevo/revisa-respuesta/{id}', [NuevoController::class, 'viewResp'])->name('viewRespNuevoOficio');
         Route::put('/oficios/nuevo/autoriza/respuesta/{id}', [NuevoController::class, 'aceptResp'])->name('aceptRespNuevo');

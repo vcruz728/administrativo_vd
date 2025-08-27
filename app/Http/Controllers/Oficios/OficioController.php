@@ -47,6 +47,7 @@ class OficioController extends Controller
 
 		$oficios = Oficio::select(
 			DB::raw("CASE 
+			   
         WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, oficios.fecha_respuesta, 120)) < cat_areas.minutos_oficio 
              AND oficios.fecha_respuesta IS NOT NULL THEN 1 -- Verde
         WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, getdate(), 120)) < cat_areas.minutos_oficio 
@@ -57,6 +58,7 @@ class OficioController extends Controller
              AND oficios.fecha_respuesta IS NOT NULL THEN 4 -- Rojo
         ELSE 5 END as estatus_valor"),
 			DB::raw("CASE 
+			 WHEN oficios.informativo = 1 AND oficios.requiere_atencion = 1 THEN '#2b0dbdff' -- Informativo con atención (neutral)
 			WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, oficios.fecha_respuesta, 120) ) < cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NOT NULL THEN '#5fd710'
 			WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, getdate(), 120) ) < cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NULL THEN '#f5f233'
 			WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, getdate(), 120) ) > cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NULL THEN '#f98200'
@@ -701,6 +703,26 @@ class OficioController extends Controller
 		} else {
 			return to_route('oficiosRespuestas');
 		}
+	}
+
+	public function marcarInformativo(\Illuminate\Http\Request $request, $id)
+	{
+		$data = $request->validate([
+			'requiere_atencion' => ['required', 'boolean'],
+		]);
+
+		$oficio = \App\Models\Oficios\Oficio::findOrFail($id);
+
+		// Marca informativo y si requiere atención
+		$oficio->informativo = 1;
+		$oficio->requiere_atencion = $data['requiere_atencion'] ? 1 : 0;
+
+		// Si NO requiere atención, aparecerá en “Informativos Históricos”
+		// Si SÍ requiere atención, permanecerá en Activos pero no debe contar para semáforo
+		$oficio->save();
+
+		// Devuelve a la vista actual (Inertia)
+		return back()->with('success', 'Oficio marcado como informativo.');
 	}
 
 	public function saveCopias(Request $request)
