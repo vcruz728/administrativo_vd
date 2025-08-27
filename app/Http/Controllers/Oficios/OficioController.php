@@ -32,6 +32,7 @@ use App\Models\User;
 
 class OficioController extends Controller
 {
+
 	public function index()
 	{
 		$where = "";
@@ -44,31 +45,53 @@ class OficioController extends Controller
 			$whereDos = " AND id_usuario = " . \Auth::user()->id;
 		}
 
+		// 1) ÚLTIMA respuesta (sirve para asunto/destinatario y además nos traemos oficio_respuesta como respaldo)
+		$ultResp = DB::table('respuestas_oficio as r')
+			->select([
+				'r.id_oficio',
+				'r.respuesta',
+				'r.nombre',
+				DB::raw('r.oficio_respuesta as oficio_respuesta_all'),
+				DB::raw('ROW_NUMBER() OVER (PARTITION BY r.id_oficio ORDER BY r.fecha_respuesta DESC, r.id DESC) AS rn'),
+			]);
+
+		// 2) ÚLTIMA respuesta con folio NO vacío (para folio_respuesta)
+		$ultRespFolio = DB::table('respuestas_oficio as r')
+			->whereNotNull('r.oficio_respuesta')
+			->whereRaw("LTRIM(RTRIM(CAST(r.oficio_respuesta AS VARCHAR(100)))) <> ''")
+			->select([
+				'r.id_oficio',
+				'r.oficio_respuesta',
+				DB::raw('ROW_NUMBER() OVER (PARTITION BY r.id_oficio ORDER BY r.fecha_respuesta DESC, r.id DESC) AS rn'),
+			]);
 
 		$oficios = Oficio::select(
 			DB::raw("CASE 
-			   
-        WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, oficios.fecha_respuesta, 120)) < cat_areas.minutos_oficio 
-             AND oficios.fecha_respuesta IS NOT NULL THEN 1 -- Verde
-        WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, getdate(), 120)) < cat_areas.minutos_oficio 
-             AND oficios.fecha_respuesta IS NULL THEN 2 -- Amarillo
-        WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, getdate(), 120)) > cat_areas.minutos_oficio 
-             AND oficios.fecha_respuesta IS NULL THEN 3 -- Naranja
-        WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, oficios.fecha_respuesta, 120)) > cat_areas.minutos_oficio 
-             AND oficios.fecha_respuesta IS NOT NULL THEN 4 -- Rojo
-        ELSE 5 END as estatus_valor"),
+            WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, oficios.fecha_respuesta, 120)) < cat_areas.minutos_oficio 
+                 AND oficios.fecha_respuesta IS NOT NULL THEN 1
+            WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, getdate(), 120)) < cat_areas.minutos_oficio 
+                 AND oficios.fecha_respuesta IS NULL THEN 2
+            WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, getdate(), 120)) > cat_areas.minutos_oficio 
+                 AND oficios.fecha_respuesta IS NULL THEN 3
+            WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, oficios.fecha_respuesta, 120)) > cat_areas.minutos_oficio 
+                 AND oficios.fecha_respuesta IS NOT NULL THEN 4
+            ELSE 5 END as estatus_valor"),
 			DB::raw("CASE 
-			 WHEN oficios.informativo = 1 AND oficios.requiere_atencion = 1 THEN '#2b0dbdff' -- Informativo con atención (neutral)
-			WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, oficios.fecha_respuesta, 120) ) < cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NOT NULL THEN '#5fd710'
-			WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, getdate(), 120) ) < cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NULL THEN '#f5f233'
-			WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, getdate(), 120) ) > cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NULL THEN '#f98200'
-			WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, oficios.fecha_respuesta, 120) ) > cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NOT NULL THEN '#ff2d2d'
-			ELSE '#000000' END as color"),
-			DB::raw("CONCAT( RIGHT('0'+cast(DAY(oficios.created_at) as varchar(2)),2) ,' de ', dbo.fn_GetMonthName (oficios.created_at, 'Spanish'),' de ',YEAR(oficios.created_at),' a las ', CONVERT(VARCHAR(5),oficios.created_at,108)) as f_ingreso"),
+            WHEN oficios.informativo = 1 AND oficios.requiere_atencion = 1 THEN '#2b0dbdff'
+            WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, oficios.fecha_respuesta, 120)) < cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NOT NULL THEN '#5fd710'
+            WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, getdate(), 120)) < cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NULL THEN '#f5f233'
+            WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, getdate(), 120)) > cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NULL THEN '#f98200'
+            WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, oficios.fecha_respuesta, 120)) > cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NOT NULL THEN '#ff2d2d'
+            ELSE '#000000' END as color"),
+			DB::raw("CONCAT(
+            RIGHT('0'+cast(DAY(oficios.created_at) as varchar(2)),2),
+            ' de ', dbo.fn_GetMonthName (oficios.created_at, 'Spanish'),
+            ' de ',YEAR(oficios.created_at),' a las ', CONVERT(VARCHAR(5),oficios.created_at,108)
+        ) as f_ingreso"),
 			'oficios.id',
 			'num_folio',
 			'num_oficio',
-			DB::raw(" CASE WHEN ingreso = 'Email' THEN num_folio ELSE num_oficio END as numero_oficio "),
+			DB::raw("CASE WHEN ingreso = 'Email' THEN num_folio ELSE num_oficio END as numero_oficio"),
 			'cat_des.nombre as des',
 			'cat_areas.nombre as area',
 			'cat_procesos.nombre as proceso',
@@ -88,48 +111,79 @@ class OficioController extends Controller
 			'oficios.descripcion_rechazo_jefe',
 			'descripcion_rechazo_final',
 			DB::raw("RIGHT(oficios.archivo_respuesta, 3) as extension"),
-			'respuestas_oficio.nombre as destinatario',
+
+			// 👉 FOLIO: prioriza la última con folio; si no hay, intenta con la última respuesta (por si viene ahí)
+			DB::raw("COALESCE(rof.oficio_respuesta, ro.oficio_respuesta_all, '') as folio_respuesta"),
+
+			// 👉 Asunto/Destinatario desde la última respuesta
+			DB::raw("COALESCE(ro.nombre,'') as destinatario"),
+			DB::raw("COALESCE(ro.respuesta,'') as asunto"),
+
 			't3.total_inicial',
-			't4.total_respuesta',
-			'respuestas_oficio.respuesta as asunto',
+			't4.total_respuesta'
 		)
 			->join('cat_des', 'cat_des.id', 'oficios.dep_ua')
 			->join('cat_areas', 'cat_areas.id', 'oficios.area')
 			->leftJoin('cat_procesos', 'cat_procesos.id', 'oficios.proceso_impacta')
-			->Leftjoin('users', 'users.id', 'oficios.id_usuario')
-			->leftJoin('respuestas_oficio', 'respuestas_oficio.id_oficio', 'oficios.id')
-			->leftJoin(DB::raw("(SELECT COUNT(id) as total_inicial, id_oficio_inicial FROM archivos_oficios WHERE id_nuevo_oficio IS NULL AND id_oficio IS NULL GROUP BY id_oficio_inicial ) as t3"), 't3.id_oficio_inicial', 'oficios.id')
-			->leftJoin(DB::raw("(SELECT COUNT(id) as total_respuesta, id_oficio  FROM archivos_oficios WHERE id_nuevo_oficio IS  NULL AND id_oficio_inicial IS NULL GROUP BY id_oficio ) as t4"), 't4.id_oficio', 'oficios.id')
+			->leftJoin('users', 'users.id', 'oficios.id_usuario')
+
+			// Join: última respuesta (asunto/destinatario y respaldo de folio)
+			->leftJoinSub($ultResp, 'ro', function ($join) {
+				$join->on('ro.id_oficio', '=', 'oficios.id')
+					->where('ro.rn', '=', 1);
+			})
+
+			// Join: última respuesta que SÍ tenga folio
+			->leftJoinSub($ultRespFolio, 'rof', function ($join) {
+				$join->on('rof.id_oficio', '=', 'oficios.id')
+					->where('rof.rn', '=', 1);
+			})
+
+			->leftJoin(
+				DB::raw("(SELECT COUNT(id) as total_inicial, id_oficio_inicial
+                         FROM archivos_oficios
+                         WHERE id_nuevo_oficio IS NULL AND id_oficio IS NULL
+                         GROUP BY id_oficio_inicial) as t3"),
+				't3.id_oficio_inicial',
+				'oficios.id'
+			)
+			->leftJoin(
+				DB::raw("(SELECT COUNT(id) as total_respuesta, id_oficio
+                         FROM archivos_oficios
+                         WHERE id_nuevo_oficio IS NULL AND id_oficio_inicial IS NULL
+                         GROUP BY id_oficio) as t4"),
+				't4.id_oficio',
+				'oficios.id'
+			)
 			->whereRaw("1=1 $where")
 			->orWhere("area", 1)
 			->orderBy('oficios.created_at', 'desc')
-
 			->get();
+
 
 
 		$procesos = Procesos::getSelForArea(\Auth::user()->id_area);
 		$usuarios = User::getSel(\Auth::user()->id_area);
 
-		/** Agregado de destinatarios: total, folios, folio y nombre_desti (excluye eliminados) */
+		// --- (VD) se queda como lo tenías ---
 		$destAgg = DB::table('destinatarios_oficio as d')
 			->leftJoin('directorios as dir', 'dir.id', '=', 'd.id_usuario')
 			->leftJoin('cat_destinatarios_externos as ext', 'ext.id', '=', 'd.id_usuario')
 			->whereNull('d.deleted_at')
 			->groupBy('d.id_oficio')
 			->selectRaw("
-        d.id_oficio,
-        COUNT(*) AS total_dest,
-        STRING_AGG(CAST(d.folio AS varchar(10)), ', ') AS folios,
-        MAX(d.folio) AS folio,
-        CASE
-            WHEN COUNT(*) = 1
-                 THEN MAX(CASE WHEN d.tipo_usuario = 1 THEN dir.nombre
-                               WHEN d.tipo_usuario = 2 THEN ext.nombre
-                          END)
-            ELSE 'Multi Destinatario'
-        END AS nombre_desti
-    ");
-
+            d.id_oficio,
+            COUNT(*) AS total_dest,
+            STRING_AGG(CAST(d.folio AS varchar(10)), ', ') AS folios,
+            MAX(d.folio) AS folio,
+            CASE
+                WHEN COUNT(*) = 1
+                     THEN MAX(CASE WHEN d.tipo_usuario = 1 THEN dir.nombre
+                                   WHEN d.tipo_usuario = 2 THEN ext.nombre
+                              END)
+                ELSE 'Multi Destinatario'
+            END AS nombre_desti
+        ");
 
 		$t3 = DB::table('archivos_oficios as a')
 			->whereNull('a.id_oficio_inicial')
@@ -137,7 +191,6 @@ class OficioController extends Controller
 			->groupBy('a.id_nuevo_oficio')
 			->selectRaw('COUNT(a.id) AS total_nuevo, a.id_nuevo_oficio');
 
-		/** Consulta principal optimizada */
 		$nuevos = NuevoOficio::query()
 			->from('nuevos_oficios')
 			->select([
@@ -154,25 +207,24 @@ class OficioController extends Controller
 				'archivo',
 				DB::raw('COALESCE(respuesta, descripcion) AS respuesta'),
 				'masivo',
-				// oficio_respuesta: usa el de nuevos_oficios o cae a folio/folios agregados
 				DB::raw("
-            COALESCE(
-                CAST(nuevos_oficios.oficio_respuesta AS VARCHAR(50)),
-                CASE WHEN dest.total_dest = 1
-                     THEN CAST(dest.folio AS VARCHAR(50))
-                     ELSE dest.folios
-                END
-            ) AS oficio_respuesta
-        "),
+                COALESCE(
+                    CAST(nuevos_oficios.oficio_respuesta AS VARCHAR(50)),
+                    CASE WHEN dest.total_dest = 1
+                         THEN CAST(dest.folio AS VARCHAR(50))
+                         ELSE dest.folios
+                    END
+                ) AS oficio_respuesta
+            "),
 				DB::raw("COALESCE(dest.nombre_desti, '') AS nombre_desti"),
 				DB::raw("
-            CONCAT(
-                RIGHT('0' + CAST(DAY(nuevos_oficios.created_at) AS varchar(2)), 2),
-                ' de ', dbo.fn_GetMonthName(nuevos_oficios.created_at, 'Spanish'),
-                ' de ', YEAR(nuevos_oficios.created_at),
-                ' a las ', CONVERT(VARCHAR(5), nuevos_oficios.created_at, 108)
-            ) AS f_ingreso
-        "),
+                CONCAT(
+                    RIGHT('0' + CAST(DAY(nuevos_oficios.created_at) AS varchar(2)), 2),
+                    ' de ', dbo.fn_GetMonthName(nuevos_oficios.created_at, 'Spanish'),
+                    ' de ', YEAR(nuevos_oficios.created_at),
+                    ' a las ', CONVERT(VARCHAR(5), nuevos_oficios.created_at, 108)
+                ) AS f_ingreso
+            "),
 				DB::raw('RIGHT(nuevos_oficios.archivo_respuesta, 3) AS extension'),
 				't3.total_nuevo',
 			])
@@ -183,17 +235,14 @@ class OficioController extends Controller
 			->leftJoinSub($destAgg, 'dest', function ($join) {
 				$join->on('dest.id_oficio', '=', 'nuevos_oficios.id');
 			})
-
-			->whereRaw("1=1 $whereDos")                // tus filtros dinámicos
+			->whereRaw("1=1 $whereDos")
 			->orderByDesc('nuevos_oficios.created_at')
 			->get();
 
-		/** Tu map sigue igual: convierte lista de folios a rangos cuando son muchos */
 		$nuevos = $nuevos->map(function ($item) {
 			if (!empty($item->oficio_respuesta)) {
 				$folios = explode(',', $item->oficio_respuesta);
 				$folios = array_map('trim', $folios);
-				// Nos quedamos solo con entradas numéricas por si viniera algo raro
 				$folios = array_values(array_filter($folios, fn($x) => is_numeric($x)));
 				sort($folios, SORT_NUMERIC);
 
@@ -216,31 +265,28 @@ class OficioController extends Controller
 					$rango[] = ($inicio == $prev) ? $inicio : "$inicio-$prev";
 				}
 
-				if (count($folios) <= 5) {
-					$item->oficio_respuesta = implode(', ', $folios);
-				} else {
-					$item->oficio_respuesta = implode(', ', $rango);
-				}
+				$item->oficio_respuesta = (count($folios) <= 5)
+					? implode(', ', $folios)
+					: implode(', ', $rango);
 			}
 			return $item;
 		});
 
-
 		if (\Auth::user()->rol == 6) {
 			return Inertia::render('Oficios/OficiosAdmin', [
-				'status' => session('status'),
-				'oficios' => $oficios,
+				'status'         => session('status'),
+				'oficios'        => $oficios,
 				'usuariosSelect' => $usuarios,
-				'procesos' => $procesos,
-				'nuevos' => $nuevos
+				'procesos'       => $procesos,
+				'nuevos'         => $nuevos
 			]);
 		} else {
 			return Inertia::render('Oficios/MisOficios', [
-				'status' => session('status'),
-				'oficios' => $oficios,
+				'status'         => session('status'),
+				'oficios'        => $oficios,
 				'usuariosSelect' => $usuarios,
-				'procesos' => $procesos,
-				'nuevos' => $nuevos
+				'procesos'       => $procesos,
+				'nuevos'         => $nuevos
 			]);
 		}
 	}
@@ -369,25 +415,50 @@ class OficioController extends Controller
 
 	public function viewOficiosResp()
 	{
+		// Subquery: última respuesta (para asunto/destinatario y fallback de folio)
+		$ultResp = DB::table('respuestas_oficio as r')
+			->select([
+				'r.id_oficio',
+				'r.respuesta',
+				'r.nombre',
+				DB::raw('r.oficio_respuesta as oficio_respuesta_all'),
+				DB::raw('ROW_NUMBER() OVER (PARTITION BY r.id_oficio ORDER BY r.fecha_respuesta DESC, r.id DESC) AS rn'),
+			]);
+
+		// Subquery: última respuesta que SÍ tenga folio (para folio_respuesta)
+		$ultRespFolio = DB::table('respuestas_oficio as r')
+			->whereNotNull('r.oficio_respuesta')
+			->whereRaw("LTRIM(RTRIM(CAST(r.oficio_respuesta AS VARCHAR(100)))) <> ''")
+			->select([
+				'r.id_oficio',
+				'r.oficio_respuesta',
+				DB::raw('ROW_NUMBER() OVER (PARTITION BY r.id_oficio ORDER BY r.fecha_respuesta DESC, r.id DESC) AS rn'),
+			]);
+
 		$oficios = Oficio::select(
 			DB::raw("CASE 
-        WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, oficios.fecha_respuesta, 120)) < cat_areas.minutos_oficio 
-             AND oficios.fecha_respuesta IS NOT NULL THEN 1 -- Verde
-        WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, getdate(), 120)) < cat_areas.minutos_oficio 
-             AND oficios.fecha_respuesta IS NULL THEN 2 -- Amarillo
-        WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, getdate(), 120)) > cat_areas.minutos_oficio 
-             AND oficios.fecha_respuesta IS NULL THEN 3 -- Naranja
-        WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, oficios.fecha_respuesta, 120)) > cat_areas.minutos_oficio 
-             AND oficios.fecha_respuesta IS NOT NULL THEN 4 -- Rojo
-        ELSE 5 END as estatus_valor"),
+            WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, oficios.fecha_respuesta, 120)) < cat_areas.minutos_oficio 
+                 AND oficios.fecha_respuesta IS NOT NULL THEN 1
+            WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, getdate(), 120)) < cat_areas.minutos_oficio 
+                 AND oficios.fecha_respuesta IS NULL THEN 2
+            WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, getdate(), 120)) > cat_areas.minutos_oficio 
+                 AND oficios.fecha_respuesta IS NULL THEN 3
+            WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, oficios.fecha_respuesta, 120)) > cat_areas.minutos_oficio 
+                 AND oficios.fecha_respuesta IS NOT NULL THEN 4
+            ELSE 5 END as estatus_valor"),
 			DB::raw("CASE 
-			WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, oficios.fecha_respuesta, 120) ) < cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NOT NULL THEN '#5fd710'
-			WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, getdate(), 120) ) < cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NULL THEN '#f5f233'
-			WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, getdate(), 120) ) > cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NULL THEN '#f98200'
-			WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120)  , convert(varchar, oficios.fecha_respuesta, 120) ) > cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NOT NULL THEN '#ff2d2d'
-			ELSE '#000000' END as color"),
-			DB::raw("CONCAT( RIGHT('0'+cast(DAY(oficios.created_at) as varchar(2)),2) ,' de ', dbo.fn_GetMonthName (oficios.created_at, 'Spanish'),' de ',YEAR(oficios.created_at),' a las ', CONVERT(VARCHAR(5),oficios.created_at,108)) as f_ingreso"),
-			DB::raw(" CASE WHEN ingreso = 'Email' THEN num_folio ELSE num_oficio END as numero_oficio "),
+            WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, oficios.fecha_respuesta, 120) ) < cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NOT NULL THEN '#5fd710'
+            WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, getdate(), 120) ) < cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NULL THEN '#f5f233'
+            WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, getdate(), 120) ) > cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NULL THEN '#f98200'
+            WHEN DATEDIFF ( MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, oficios.fecha_respuesta, 120) ) > cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NOT NULL THEN '#ff2d2d'
+            ELSE '#000000' END as color"),
+			DB::raw("CONCAT(
+            RIGHT('0'+cast(DAY(oficios.created_at) as varchar(2)),2),
+            ' de ', dbo.fn_GetMonthName (oficios.created_at, 'Spanish'),
+            ' de ', YEAR(oficios.created_at),
+            ' a las ', CONVERT(VARCHAR(5),oficios.created_at,108)
+        ) as f_ingreso"),
+			DB::raw("CASE WHEN ingreso = 'Email' THEN num_folio ELSE num_oficio END as numero_oficio"),
 			'oficios.id',
 			'num_folio',
 			'num_oficio',
@@ -400,18 +471,36 @@ class OficioController extends Controller
 			'oficios.archivo_respuesta',
 			'oficios.oficio_final',
 			DB::raw("RIGHT(oficios.archivo_respuesta, 3) as extension"),
-			'respuestas_oficio.respuesta as asunto',
+
+			// 🔹 NUEVO: folio de la última respuesta con folio; si no hay, intenta con la última respuesta
+			DB::raw("COALESCE(rof.oficio_respuesta, ro.oficio_respuesta_all, '') as folio_respuesta"),
+
+			// 🔹 Asunto desde la última respuesta
+			DB::raw("COALESCE(ro.respuesta,'') as asunto")
 		)
 			->join('cat_areas', 'cat_areas.id', 'oficios.area')
 			->leftJoin('cat_procesos', 'cat_procesos.id', 'oficios.proceso_impacta')
-			->leftJoin('respuestas_oficio', 'respuestas_oficio.id_oficio', 'oficios.id')
+
+			// 👇 Quita el join directo a respuestas_oficio (duplicaba filas y no nos daba el folio correcto)
+			// ->leftJoin('respuestas_oficio', 'respuestas_oficio.id_oficio', 'oficios.id')
+
+			// 👇 Une subqueries
+			->leftJoinSub($ultResp, 'ro', function ($join) {
+				$join->on('ro.id_oficio', '=', 'oficios.id')
+					->where('ro.rn', '=', 1);
+			})
+			->leftJoinSub($ultRespFolio, 'rof', function ($join) {
+				$join->on('rof.id_oficio', '=', 'oficios.id')
+					->where('rof.rn', '=', 1);
+			})
+
+			// Mantengo tu lógica original: finalizado=1 OR area=1 (informativos)
 			->where('finalizado', 1)
 			->orWhere('area', 1)
 			->orderBy('oficios.created_at', 'desc')
-
 			->get();
 
-
+		// ------------------- NUEVOS (VD) tal como lo tenías -------------------
 		$nuevos = NuevoOficio::select(
 			'nuevos_oficios.id',
 			'cat_areas.nombre as area',
@@ -420,48 +509,46 @@ class OficioController extends Controller
 			'enviado',
 			'finalizado',
 			'masivo',
-
 			DB::raw("COALESCE(
-    CAST(nuevos_oficios.oficio_respuesta AS VARCHAR(50)),
-    CASE 
-      WHEN folios.total = 1 THEN CAST(folios.folio AS VARCHAR(50)) 
-      ELSE folios.folios 
-    END
-) as oficio_respuesta"),
+            CAST(nuevos_oficios.oficio_respuesta AS VARCHAR(50)),
+            CASE 
+              WHEN folios.total = 1 THEN CAST(folios.folio AS VARCHAR(50)) 
+              ELSE folios.folios 
+            END
+        ) as oficio_respuesta"),
 			DB::raw("COALESCE(t1.nombre_desti, 'Grupal') as nombre_desti"),
 			DB::raw("CONCAT(
-                RIGHT('0'+cast(DAY(nuevos_oficios.created_at) as varchar(2)),2),
-                ' de ', dbo.fn_GetMonthName (nuevos_oficios.created_at, 'Spanish'),
-                ' de ', YEAR(nuevos_oficios.created_at),
-                ' a las ', CONVERT(VARCHAR(5),nuevos_oficios.created_at,108)
-            ) as f_ingreso"),
+            RIGHT('0'+cast(DAY(nuevos_oficios.created_at) as varchar(2)),2),
+            ' de ', dbo.fn_GetMonthName (nuevos_oficios.created_at, 'Spanish'),
+            ' de ', YEAR(nuevos_oficios.created_at),
+            ' a las ', CONVERT(VARCHAR(5),nuevos_oficios.created_at,108)
+        ) as f_ingreso"),
 			DB::raw("RIGHT(nuevos_oficios.archivo_respuesta, 3) as extension"),
 			DB::raw("COALESCE(respuesta, descripcion) as respuesta")
 		)
 			->join('cat_areas', 'cat_areas.id', 'nuevos_oficios.id_area')
 			->leftJoin(DB::raw("(
-    SELECT destinatarios_oficio.id_oficio,
-           CASE 
-             WHEN t1.total = 1 AND destinatarios_oficio.tipo_usuario = 1 THEN directorios.nombre
-             WHEN t1.total = 1 AND destinatarios_oficio.tipo_usuario = 2 THEN cat_destinatarios_externos.nombre
-             WHEN t1.total > 1 THEN 'Multi Destinatario'
-             ELSE '' END AS nombre_desti
-    FROM destinatarios_oficio 
-    JOIN (SELECT MAX(id) as id, COUNT(id) as total 
-          FROM destinatarios_oficio  
-          GROUP BY id_oficio ) as t1 ON t1.id = destinatarios_oficio.id
-    LEFT JOIN directorios ON directorios.id = destinatarios_oficio.id_usuario
-    LEFT JOIN cat_destinatarios_externos ON cat_destinatarios_externos.id = destinatarios_oficio.id_usuario
-) as t1"), 'nuevos_oficios.id', 't1.id_oficio')
-
+        SELECT destinatarios_oficio.id_oficio,
+               CASE 
+                 WHEN t1.total = 1 AND destinatarios_oficio.tipo_usuario = 1 THEN directorios.nombre
+                 WHEN t1.total = 1 AND destinatarios_oficio.tipo_usuario = 2 THEN cat_destinatarios_externos.nombre
+                 WHEN t1.total > 1 THEN 'Multi Destinatario'
+                 ELSE '' END AS nombre_desti
+        FROM destinatarios_oficio 
+        JOIN (SELECT MAX(id) as id, COUNT(id) as total 
+              FROM destinatarios_oficio  
+              GROUP BY id_oficio ) as t1 ON t1.id = destinatarios_oficio.id
+        LEFT JOIN directorios ON directorios.id = destinatarios_oficio.id_usuario
+        LEFT JOIN cat_destinatarios_externos ON cat_destinatarios_externos.id = destinatarios_oficio.id_usuario
+    ) as t1"), 'nuevos_oficios.id', 't1.id_oficio')
 			->leftJoin(DB::raw("(
-    SELECT id_oficio,
-           COUNT(folio) as total,
-           STRING_AGG(folio, ', ') as folios,
-           MAX(folio) as folio
-    FROM destinatarios_oficio
-    GROUP BY id_oficio
-) as folios"), 'folios.id_oficio', 'nuevos_oficios.id')
+        SELECT id_oficio,
+               COUNT(folio) as total,
+               STRING_AGG(folio, ', ') as folios,
+               MAX(folio) as folio
+        FROM destinatarios_oficio
+        GROUP BY id_oficio
+    ) as folios"), 'folios.id_oficio', 'nuevos_oficios.id')
 			->where('finalizado', 1)
 			->orderBy('nuevos_oficios.created_at', 'desc')
 			->get();
@@ -480,46 +567,31 @@ class OficioController extends Controller
 						$inicio = $prev = $folio;
 						continue;
 					}
-
 					if ($folio == $prev + 1) {
-
 						$prev = $folio;
 					} else {
-
-						if ($inicio == $prev) {
-							$rango[] = $inicio;
-						} else {
-							$rango[] = "$inicio-$prev";
-						}
+						$rango[] = ($inicio == $prev) ? $inicio : "$inicio-$prev";
 						$inicio = $prev = $folio;
 					}
 				}
-
-
 				if ($inicio !== null) {
-					if ($inicio == $prev) {
-						$rango[] = $inicio;
-					} else {
-						$rango[] = "$inicio-$prev";
-					}
+					$rango[] = ($inicio == $prev) ? $inicio : "$inicio-$prev";
 				}
 
-				if (count($folios) <= 5) {
-					$item->oficio_respuesta = implode(', ', $folios);
-				} else {
-					// Si son muchos, aplicar los rangos
-					$item->oficio_respuesta = implode(', ', $rango);
-				}
+				$item->oficio_respuesta = (count($folios) <= 5)
+					? implode(', ', $folios)
+					: implode(', ', $rango);
 			}
-
 			return $item;
 		});
+
 		return Inertia::render('Oficios/OficiosRespuestas', [
-			'status' => session('status'),
+			'status'  => session('status'),
 			'oficios' => $oficios,
-			'nuevos' => $nuevos
+			'nuevos'  => $nuevos
 		]);
 	}
+
 
 	public function asignaResp(Request $request)
 	{

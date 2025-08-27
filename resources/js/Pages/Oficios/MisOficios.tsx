@@ -596,7 +596,7 @@ export default function Recepcion({
                                                         language,
                                                         autoWidth: false,
 
-                                                        order: [[2, "desc"]],
+                                                        order: [[1, "desc"]],
                                                         lengthMenu: [
                                                             [25, 50, 100],
                                                             [25, 50, 100],

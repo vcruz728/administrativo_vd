@@ -373,6 +373,18 @@ const OficiosRespuestas = ({
                                                             data: "numero_oficio",
                                                             title: "No. Oficio / Folio",
                                                             width: "5%",
+                                                            searchable: true,
+                                                        },
+                                                        {
+                                                            data: "folio_respuesta",
+                                                            title: "Folio de respuesta",
+                                                            width: "10%",
+                                                            searchable: true,
+                                                            render: (d) =>
+                                                                d &&
+                                                                d.trim() !== "0"
+                                                                    ? d
+                                                                    : "—",
                                                         },
                                                         {
                                                             data: "area",
@@ -403,7 +415,7 @@ const OficiosRespuestas = ({
                                                     ]}
                                                     className="display table-bordered  border-bottom ancho100"
                                                     slots={{
-                                                        6: (
+                                                        7: (
                                                             data: any,
                                                             row: any
                                                         ) => (
@@ -626,7 +638,7 @@ const OficiosRespuestas = ({
                                                                 exportOptions: {
                                                                     columns: [
                                                                         1, 2, 3,
-                                                                        4, 5,
+                                                                        4, 5, 6,
                                                                     ], // exporta solo las primeras 8 columnas
                                                                 },
                                                             },
@@ -1135,7 +1147,7 @@ const OficiosRespuestas = ({
                                                             width: "10%",
                                                         },
                                                         {
-                                                            data: "destinatario",
+                                                            data: "nombre_desti",
                                                             title: "Destinatario",
                                                             width: "10%",
                                                         },
