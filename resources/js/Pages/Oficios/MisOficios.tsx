@@ -503,6 +503,15 @@ export default function Recepcion({
                                     <span className="tag tag-radius tag-round tag-rojo">
                                         Se dio respuesta fuera de tiempo
                                     </span>
+                                    <span
+                                        className="tag tag-radius tag-round"
+                                        style={{
+                                            backgroundColor: "#2a0dbd",
+                                            color: "#fff",
+                                        }}
+                                    >
+                                        Informativos
+                                    </span>
                                 </div>
                                 <div className="tags"></div>
                             </Card.Header>

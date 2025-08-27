@@ -230,7 +230,7 @@
         </div>
     <br><br>
     <!--  contenido -->
-<div class="contenido-dinamico" style="text-align: justify; line-height: 1.5;">
+<div class="contenido-dinamico">
     {!! $respuesta?->respuesta ?? '' !!}
 </div>
     <!--  termina contenido -->
