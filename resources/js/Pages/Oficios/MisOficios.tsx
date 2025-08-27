@@ -616,16 +616,15 @@ export default function Recepcion({
                                                     }}
                                                     columns={[
                                                         {
-                                                            data: "estatus_valor",
-                                                            visible: false, // columna oculta, solo para ordenar
-                                                        },
-                                                        {
                                                             data: "id",
                                                             title: "Estatus",
+
                                                             createdCell(
                                                                 cell,
                                                                 cellData,
-                                                                rowData
+                                                                rowData,
+                                                                row,
+                                                                col
                                                             ) {
                                                                 $(cell).css(
                                                                     "background",
@@ -636,7 +635,6 @@ export default function Recepcion({
                                                                     rowData.color
                                                                 );
                                                             },
-                                                            orderData: [0], // esta sigue ligada a la columna oculta
                                                             width: "5%",
                                                         },
                                                         {
@@ -650,8 +648,8 @@ export default function Recepcion({
                                                             width: "5%",
                                                         },
                                                         {
-                                                            data: "responsable",
-                                                            title: "Responsable",
+                                                            data: "area",
+                                                            title: "Área",
                                                             width: "10%",
                                                         },
                                                         {
@@ -682,7 +680,12 @@ export default function Recepcion({
                                                             data: any,
                                                             row: any
                                                         ) => (
-                                                            <div className="text-center">
+                                                            <div
+                                                                className="btns-acciones"
+                                                                onClick={(e) =>
+                                                                    e.stopPropagation()
+                                                                }
+                                                            >
                                                                 {row.respuesta >
                                                                     0 &&
                                                                 row.finalizado ===
