@@ -348,70 +348,101 @@ class OficioController extends Controller
 
 		return Inertia::render('Oficios/ResponderOficio', ['status' => session('status'), 'externos' => $externos, 'oficio' => $bandera, 'files' => $archivos, 'directorio' => $directorio, 'copy' => $copy, 'respuesta' => $respuesta, 'directorioAll' => $directorioAll]);
 	}
+public function viewResp($id)
+{
+    // Subconsulta: última respuesta en respuestas_oficio (si existiera)
+    $lastResp = DB::table('respuestas_oficio as r')
+        ->select([
+            'r.id_oficio',
+            'r.id as id_respuesta',
+            'r.comentario',
+            'r.fecha_respuesta',
+            DB::raw('ROW_NUMBER() OVER (
+                PARTITION BY r.id_oficio
+                ORDER BY COALESCE(r.fecha_respuesta, r.created_at) DESC, r.id DESC
+            ) as rn'),
+        ]);
 
-	public function viewResp($id)
-	{
-		$oficios = Oficio::select(
-			'oficios.id',
-			'num_folio',
-			'num_oficio',
-			DB::raw(" CASE WHEN ingreso = 'Email' THEN num_folio ELSE num_oficio END as numero_oficio "),
-			'cat_des.nombre as des',
-			'cat_areas.nombre as area',
-			'cat_procesos.nombre as proceso',
-			'dep_ua',
-			'area as id_area',
-			DB::raw("CONCAT(cat_procesos.nombre, CASE WHEN users.name IS NULL THEN '' ELSE ' / '+users.name END ) as responsable"),
-			'oficios.id_usuario',
-			'proceso_impacta',
-			'descripcion',
-			'oficios.archivo',
-			'oficios.descripcion_respuesta',
-			'oficios.archivo_respuesta',
-			'oficios.descripcion_rechazo',
-			'oficios.finalizado',
-			'oficios.ingreso',
-			'respuestas_oficio.comentario',
-			'respuestas_oficio.id as id_respuesta',
-			'respuestas_oficio.fecha_respuesta'
-		)
-			->join('cat_des', 'cat_des.id', 'oficios.dep_ua')
-			->join('cat_areas', 'cat_areas.id', 'oficios.area')
-			->join('cat_procesos', 'cat_procesos.id', 'oficios.proceso_impacta')
-			->join('respuestas_oficio', 'respuestas_oficio.id_oficio', 'oficios.id')
-			->Leftjoin('users', 'users.id', 'oficios.id_usuario')
-			->where('oficios.id', $id)
-			->first();
+    $oficio = Oficio::select(
+        'oficios.id',
+        'num_folio',
+        'num_oficio',
+        DB::raw("CASE WHEN ingreso = 'Email' THEN num_folio ELSE num_oficio END as numero_oficio"),
+        'cat_des.nombre as des',
+        'cat_areas.nombre as area',
+        'cat_procesos.nombre as proceso',
+        'dep_ua',
+        'area as id_area',
+        DB::raw("CONCAT(cat_procesos.nombre, CASE WHEN users.name IS NULL THEN '' ELSE ' / '+users.name END ) as responsable"),
+        'oficios.id_usuario',
+        'proceso_impacta',
+        'oficios.descripcion',
+        'oficios.archivo',
+        'oficios.descripcion_respuesta',
+        'oficios.archivo_respuesta',
+        'oficios.descripcion_rechazo',
+        'oficios.finalizado',
+        'oficios.ingreso',
 
-		$archivos = ArchivoOficio::select('id', 'nombre', 'archivo')
-			->where('id_oficio', $id)
-			->get()
-			->map(function ($archivo) {
-				$extension = pathinfo($archivo->archivo, PATHINFO_EXTENSION);
+        // Tomar primero lo de respuestas_oficio (lr.*), y si no existe, usar nuevos_oficios (no.*)
+        DB::raw('COALESCE(lr.comentario, no.comentario) as comentario_resp'),
+        DB::raw('COALESCE(lr.id_respuesta, no.id) as id_respuesta'),
+        DB::raw('COALESCE(lr.fecha_respuesta, no.fecha_respuesta) as fecha_respuesta_resp')
+    )
+        ->join('cat_des', 'cat_des.id', 'oficios.dep_ua')
+        ->join('cat_areas', 'cat_areas.id', 'oficios.area')
+        ->join('cat_procesos', 'cat_procesos.id', 'oficios.proceso_impacta')
+        ->leftJoin('users', 'users.id', 'oficios.id_usuario')
 
-				if ($extension == "pdf" || $extension == "jpg" || $extension == "jpeg" || $extension == "png") {
-					$tipo = 1;
-					$url = $archivo->archivo;
-				} else {
-					$url = asset("files/" . $archivo->archivo);
-					$tipo = 2;
-				}
+        // LEFT JOIN a la última fila de respuestas_oficio
+        ->leftJoinSub($lastResp, 'lr', function ($join) {
+            $join->on('lr.id_oficio', '=', 'oficios.id')
+                 ->where('lr.rn', '=', 1);
+        })
 
-				return [
-					'id' => $archivo->id,
-					'tipo' => $tipo,
-					'url' => $url,
-					'nombre' => $archivo->nombre,
-					'extension' => $extension,
-				];
-			});
+        // <-- AQUI el vínculo con nuevos_oficios (id == id_oficio)
+        ->leftJoin('nuevos_oficios as no', 'no.id', '=', 'oficios.id')
 
-		return Inertia::render('Oficios/RevisaRespuesta', [
-			'status' => session('status'),
-			'oficio' => $oficios,
-			'archivos' => $archivos,
-		]);
-	}
+        ->where('oficios.id', $id)
+        ->first();
+
+    if (!$oficio) {
+        abort(404);
+    }
+
+    // Evitar archivos vacíos que generan URL /files/
+    $archivos = ArchivoOficio::select('id', 'nombre', 'archivo')
+        ->where('id_oficio', $id)
+        ->whereNotNull('archivo')
+        ->where('archivo', '<>', '')
+        ->get()
+        ->map(function ($archivo) {
+            $extension = pathinfo($archivo->archivo, PATHINFO_EXTENSION);
+            if (in_array(strtolower($extension), ['pdf', 'jpg', 'jpeg', 'png'])) {
+                $tipo = 1;
+                $url  = $archivo->archivo;
+            } else {
+                $tipo = 2;
+                $url  = asset('files/' . ltrim($archivo->archivo, '/'));
+            }
+
+            return [
+                'id'        => $archivo->id,
+                'tipo'      => $tipo,
+                'url'       => $url,
+                'nombre'    => $archivo->nombre,
+                'extension' => $extension,
+            ];
+        });
+
+    return Inertia::render('Oficios/RevisaRespuesta', [
+        'status'   => session('status'),
+        'oficio'   => $oficio,
+        'archivos' => $archivos,
+    ]);
+}
+
+
 
 	public function viewOficiosResp()
 	{
