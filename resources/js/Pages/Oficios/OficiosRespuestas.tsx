@@ -36,8 +36,6 @@ window.JSZip = JSZip;
 import "datatables.net-buttons-bs5";
 import "datatables.net-buttons/js/buttons.html5.js";
 
-import "../../../css/botones.css";
-
 DataTable.use(DT);
 
 type FormIn = {
@@ -56,15 +54,14 @@ const OficiosRespuestas = ({
     nuevos: [];
 }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const [showPdf, setShowPdf] = useState(false); // visor PDF (nuevo)
-    const [showUpload, setShowUpload] = useState(false); // subir confirmación
+    const [show, setShow] = useState(false);
+    const [showDos, setShowDos] = useState(false);
     const [showLinea, setShowLinea] = useState(false);
     const [variables, setVariables] = useState({
         urlPdf: "",
         extension: "",
         idOfico: 0,
     });
-
     const [activos, setActivos] = useState<any[]>();
     const [historico, setHistorico] = useState<any[]>();
     const [informativos, setInformativos] = useState<any[]>();
@@ -144,8 +141,7 @@ const OficiosRespuestas = ({
             id: 0,
             archivo: null,
         });
-        setShowUpload(false);
-
+        setShow(false);
         form.reset();
 
         fileInputRef.current!.value = "";
@@ -419,25 +415,14 @@ const OficiosRespuestas = ({
                                                             data: any,
                                                             row: any
                                                         ) => (
-                                                            <div
-                                                                className="btns-acciones"
-                                                                onClick={(e) =>
-                                                                    e.stopPropagation()
-                                                                }
-                                                            >
-                                                                {/* 1) Subir confirmación / Revisar respuesta */}
+                                                            <div className="text-center">
                                                                 {row.enviado ===
                                                                 1 ? (
                                                                     <Button
-                                                                        type="button"
-                                                                        className="btn-icon"
+                                                                        className="btn-icon btn btn-warning"
                                                                         variant="warning"
                                                                         title="Subir confirmación de recibido"
-                                                                        onClick={(
-                                                                            e
-                                                                        ) => {
-                                                                            e.preventDefault();
-                                                                            e.stopPropagation();
+                                                                        onClick={() => {
                                                                             form.clearErrors();
                                                                             form.setData(
                                                                                 {
@@ -446,7 +431,7 @@ const OficiosRespuestas = ({
                                                                                     tipo: "respuesta",
                                                                                 }
                                                                             );
-                                                                            setShowUpload(
+                                                                            setShow(
                                                                                 true
                                                                             );
                                                                         }}
@@ -461,100 +446,16 @@ const OficiosRespuestas = ({
                                                                                 id: row.id,
                                                                             }
                                                                         )}
-                                                                        className="btn btn-icon btn-primary"
-                                                                        title="Revisar respuesta"
-                                                                        onClick={(
-                                                                            e
-                                                                        ) =>
-                                                                            e.stopPropagation()
-                                                                        }
                                                                     >
-                                                                        <i className="zmdi zmdi-pin-account"></i>
+                                                                        <Button
+                                                                            className="btn-icon btn btn-warning mr-1"
+                                                                            variant="primary"
+                                                                            title="Revisar respuesta"
+                                                                        >
+                                                                            <i className="zmdi zmdi-pin-account"></i>{" "}
+                                                                        </Button>
                                                                     </Link>
                                                                 )}
-
-                                                                {/* 2) Línea de tiempo */}
-                                                                <Button
-                                                                    type="button"
-                                                                    className="btn-icon"
-                                                                    variant="success"
-                                                                    title="Ver línea de tiempo del oficio"
-                                                                    onClick={(
-                                                                        e
-                                                                    ) => {
-                                                                        e.preventDefault();
-                                                                        e.stopPropagation();
-                                                                        setVariables(
-                                                                            {
-                                                                                ...variables,
-                                                                                idOfico:
-                                                                                    row.id,
-                                                                            }
-                                                                        );
-                                                                        setShowLinea(
-                                                                            true
-                                                                        );
-                                                                    }}
-                                                                >
-                                                                    <i className="fa fa-history"></i>
-                                                                </Button>
-
-                                                                {/* 3) Ver respuesta al oficio (PDF) — solo si enviado===1 */}
-                                                                {row.enviado ===
-                                                                    1 && (
-                                                                    <Button
-                                                                        type="button"
-                                                                        className="btn-icon"
-                                                                        variant="danger"
-                                                                        title="Ver respuesta al oficio"
-                                                                        onClick={(
-                                                                            e
-                                                                        ) => {
-                                                                            e.preventDefault();
-                                                                            e.stopPropagation();
-                                                                            setVariables(
-                                                                                {
-                                                                                    ...variables,
-                                                                                    urlPdf: `imprime/pdf/0/${row.id}`,
-                                                                                    extension:
-                                                                                        "pdf",
-                                                                                }
-                                                                            );
-                                                                            setShowPdf(
-                                                                                true
-                                                                            );
-                                                                        }}
-                                                                    >
-                                                                        <i className="fa fa-file-pdf-o"></i>
-                                                                    </Button>
-                                                                )}
-
-                                                                {/* 4) Ver PDF del oficio (siempre) */}
-                                                                <Button
-                                                                    type="button"
-                                                                    className="btn-icon"
-                                                                    variant="danger"
-                                                                    title="Ver PDF del oficio"
-                                                                    onClick={(
-                                                                        e
-                                                                    ) => {
-                                                                        e.preventDefault();
-                                                                        e.stopPropagation();
-                                                                        setVariables(
-                                                                            {
-                                                                                ...variables,
-                                                                                urlPdf: row.archivo,
-                                                                                extension:
-                                                                                    "pdf",
-                                                                            }
-                                                                        );
-                                                                        setShowPdf(
-                                                                            true
-                                                                        );
-                                                                    }}
-                                                                >
-                                                                    <i className="fa fa-eye"></i>
-                                                                </Button>
                                                             </div>
                                                         ),
                                                     }}
@@ -724,7 +625,7 @@ const OficiosRespuestas = ({
                                                                                     row.extension,
                                                                             }
                                                                         );
-                                                                        setShowPdf(
+                                                                        setShowDos(
                                                                             true
                                                                         );
                                                                     }}
@@ -746,7 +647,7 @@ const OficiosRespuestas = ({
                                                                             }
                                                                         );
 
-                                                                        setShowPdf(
+                                                                        setShowDos(
                                                                             true
                                                                         );
                                                                     }}
@@ -768,7 +669,7 @@ const OficiosRespuestas = ({
                                                                             }
                                                                         );
 
-                                                                        setShowPdf(
+                                                                        setShowDos(
                                                                             true
                                                                         );
                                                                     }}
@@ -803,7 +704,7 @@ const OficiosRespuestas = ({
                                         </Tab>
                                         <Tab
                                             eventKey="tab3"
-                                            title="Informativos Historicos"
+                                            title="Informativos"
                                         >
                                             <Col
                                                 md={12}
@@ -864,7 +765,7 @@ const OficiosRespuestas = ({
                                                                             }
                                                                         );
 
-                                                                        setShowPdf(
+                                                                        setShowDos(
                                                                             true
                                                                         );
                                                                     }}
@@ -963,12 +864,7 @@ const OficiosRespuestas = ({
                                                             data: any,
                                                             row: any
                                                         ) => (
-                                                            <div
-                                                                className="d-flex justify-content-center gap-1"
-                                                                onClick={(e) =>
-                                                                    e.stopPropagation()
-                                                                }
-                                                            >
+                                                            <div className="text-center">
                                                                 {row.masivo ==
                                                                 1 ? (
                                                                     row.enviado ===
@@ -988,7 +884,7 @@ const OficiosRespuestas = ({
                                                                                             tipo: "nuevo",
                                                                                         }
                                                                                     );
-                                                                                    setShowUpload(
+                                                                                    setShow(
                                                                                         true
                                                                                     );
                                                                                 }}
@@ -1009,7 +905,7 @@ const OficiosRespuestas = ({
                                                                                                 row.extension,
                                                                                         }
                                                                                     );
-                                                                                    setShowPdf(
+                                                                                    setShowDos(
                                                                                         true
                                                                                     );
                                                                                 }}
@@ -1042,20 +938,19 @@ const OficiosRespuestas = ({
                                                                 null ? (
                                                                     <Link
                                                                         href={route(
-                                                                            "viewRespOficio",
+                                                                            "viewRespNuevoOficio",
                                                                             {
                                                                                 id: row.id,
                                                                             }
                                                                         )}
-                                                                        className="btn btn-icon btn-warning mr-1"
-                                                                        title="Revisar respuesta"
-                                                                        onClick={(
-                                                                            e
-                                                                        ) =>
-                                                                            e.stopPropagation()
-                                                                        }
                                                                     >
-                                                                        <i className="zmdi zmdi-pin-account"></i>
+                                                                        <Button
+                                                                            className="btn-icon btn btn-warning mr-1"
+                                                                            variant="primary"
+                                                                            title="Revisar respuesta"
+                                                                        >
+                                                                            <i className="zmdi zmdi-pin-account"></i>{" "}
+                                                                        </Button>
                                                                     </Link>
                                                                 ) : null}
 
@@ -1147,7 +1042,7 @@ const OficiosRespuestas = ({
                                                             width: "10%",
                                                         },
                                                         {
-                                                            data: "nombre_desti",
+                                                            data: "destinatario",
                                                             title: "Destinatario",
                                                             width: "10%",
                                                         },
@@ -1157,7 +1052,7 @@ const OficiosRespuestas = ({
                                                             title: "Acciones",
                                                         },
                                                         {
-                                                            data: "respuesta",
+                                                            data: "nombre_desti",
                                                             title: "Respuesta",
                                                             visible: false,
                                                             searchable: true,
@@ -1185,7 +1080,7 @@ const OficiosRespuestas = ({
                                                                                         row.extension,
                                                                                 }
                                                                             );
-                                                                            setShowPdf(
+                                                                            setShowDos(
                                                                                 true
                                                                             );
                                                                         }}
@@ -1240,7 +1135,7 @@ const OficiosRespuestas = ({
                     </Col>
                 </Row>
 
-                <Modal show={showUpload} onHide={() => setShowUpload(false)}>
+                <Modal show={show} onHide={() => setShow(false)}>
                     <ModalHeader>
                         <ModalTitle as="h5">Evidencía de recibido</ModalTitle>
                     </ModalHeader>
@@ -1273,7 +1168,7 @@ const OficiosRespuestas = ({
                         <ModalFooter>
                             <Button
                                 variant="secondary"
-                                onClick={() => setShowUpload(false)}
+                                onClick={() => setShow(false)}
                             >
                                 Cancelar
                             </Button>
@@ -1286,9 +1181,9 @@ const OficiosRespuestas = ({
 
                 <VerPdf
                     urlPdf={variables.urlPdf}
-                    show={showPdf}
+                    show={showDos}
                     tipo={variables.extension}
-                    setShow={setShowPdf}
+                    setShow={setShowDos}
                 />
 
                 <LineaTiempo
