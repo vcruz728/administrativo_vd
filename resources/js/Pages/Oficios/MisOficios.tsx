@@ -686,6 +686,7 @@ export default function Recepcion({
                                                                     e.stopPropagation()
                                                                 }
                                                             >
+                                                                {/* Revisar respuesta */}
                                                                 {row.respuesta >
                                                                     0 &&
                                                                 row.finalizado ===
@@ -701,15 +702,16 @@ export default function Recepcion({
                                                                         )}
                                                                     >
                                                                         <Button
-                                                                            className="btn-icon btn btn-warning mr-1"
-                                                                            variant="primary"
+                                                                            className="btn-icon"
+                                                                            variant="warning"
                                                                             title="Revisar respuesta"
                                                                         >
-                                                                            <i className="zmdi zmdi-pin-account"></i>{" "}
+                                                                            <i className="zmdi zmdi-pin-account"></i>
                                                                         </Button>
                                                                     </Link>
                                                                 ) : null}
 
+                                                                {/* Responder oficio */}
                                                                 {row.respuesta ==
                                                                 0 ? (
                                                                     <Link
@@ -732,27 +734,34 @@ export default function Recepcion({
                                                                         }
                                                                     >
                                                                         <Button
-                                                                            className="btn-icon btn btn-warning"
+                                                                            className="btn-icon"
                                                                             variant={
-                                                                                user.rol ==
-                                                                                    4 &&
-                                                                                (row.descripcion_rechazo_jefe !==
-                                                                                    null ||
-                                                                                    row.descripcion_rechazo_final !==
-                                                                                        null)
+                                                                                // rojo si hubo rechazo (del jefe o final), sin depender del rol
+                                                                                (
+                                                                                    row.descripcion_rechazo_jefe ??
+                                                                                    ""
+                                                                                )
+                                                                                    .toString()
+                                                                                    .trim() !==
+                                                                                    "" ||
+                                                                                (
+                                                                                    row.descripcion_rechazo_final ??
+                                                                                    ""
+                                                                                )
+                                                                                    .toString()
+                                                                                    .trim() !==
+                                                                                    ""
                                                                                     ? "danger"
                                                                                     : "warning"
                                                                             }
-                                                                            title={
-                                                                                "Responder al oficio"
-                                                                            }
+                                                                            title="Responder al oficio"
                                                                         >
                                                                             <i className="fa fa-mail-reply"></i>
                                                                         </Button>
                                                                     </Link>
                                                                 ) : (
                                                                     <Button
-                                                                        className="btn-icon btn btn-warning"
+                                                                        className="btn-icon"
                                                                         variant="danger"
                                                                         title="Ver respuesta al oficio"
                                                                         onClick={() => {
@@ -764,7 +773,6 @@ export default function Recepcion({
                                                                                         "pdf",
                                                                                 }
                                                                             );
-
                                                                             setShow(
                                                                                 true
                                                                             );
@@ -774,12 +782,13 @@ export default function Recepcion({
                                                                     </Button>
                                                                 )}
 
+                                                                {/* Asignar responsable / Rechazar responsabilidad */}
                                                                 {user.rol ==
                                                                     3 ||
                                                                 user.rol ==
                                                                     1 ? (
                                                                     <Button
-                                                                        className="btn-icon btn ml-1"
+                                                                        className="btn-icon"
                                                                         variant={
                                                                             row.descripcion_rechazo ===
                                                                             null
@@ -795,14 +804,14 @@ export default function Recepcion({
                                                                         onClick={() => {
                                                                             modalAsigna(
                                                                                 row
-                                                                            ),
-                                                                                setTextos(
-                                                                                    {
-                                                                                        ...textos,
-                                                                                        textoRechazo:
-                                                                                            row.descripcion_rechazo,
-                                                                                    }
-                                                                                );
+                                                                            );
+                                                                            setTextos(
+                                                                                {
+                                                                                    ...textos,
+                                                                                    textoRechazo:
+                                                                                        row.descripcion_rechazo,
+                                                                                }
+                                                                            );
                                                                         }}
                                                                         hidden={
                                                                             row.id_usuario !==
@@ -817,17 +826,17 @@ export default function Recepcion({
                                                                     </Button>
                                                                 ) : (
                                                                     <Button
-                                                                        className="btn-icon btn ml-1"
+                                                                        className="btn-icon"
                                                                         variant="primary"
                                                                         title="Rechazar responsabilidad"
                                                                         onClick={() => {
                                                                             formRechazo.setData(
                                                                                 "id",
                                                                                 row.id
-                                                                            ),
-                                                                                setShow4(
-                                                                                    true
-                                                                                );
+                                                                            );
+                                                                            setShow4(
+                                                                                true
+                                                                            );
                                                                         }}
                                                                         disabled={
                                                                             row.respuesta ==
@@ -840,8 +849,9 @@ export default function Recepcion({
                                                                     </Button>
                                                                 )}
 
+                                                                {/* Ver PDF oficio */}
                                                                 <Button
-                                                                    className="btn-icon ml-1"
+                                                                    className="btn-icon"
                                                                     variant="danger"
                                                                     title="Ver PDF del oficio"
                                                                     onClick={() => {
@@ -860,8 +870,10 @@ export default function Recepcion({
                                                                 >
                                                                     <i className="fa fa-eye"></i>
                                                                 </Button>
+
+                                                                {/* Línea de tiempo */}
                                                                 <Button
-                                                                    className="btn-icon ml-1"
+                                                                    className="btn-icon"
                                                                     variant="success"
                                                                     onClick={() => {
                                                                         setVariables(
@@ -871,7 +883,6 @@ export default function Recepcion({
                                                                                     row.id,
                                                                             }
                                                                         );
-
                                                                         setShowLinea(
                                                                             true
                                                                         );
@@ -880,8 +891,10 @@ export default function Recepcion({
                                                                 >
                                                                     <i className="fa fa-history"></i>
                                                                 </Button>
+
+                                                                {/* Marcar como informativo */}
                                                                 <Button
-                                                                    className="btn-icon ml-1"
+                                                                    className="btn-icon"
                                                                     variant="info"
                                                                     title="Marcar como Informativo"
                                                                     onClick={() =>
@@ -1049,9 +1062,15 @@ export default function Recepcion({
                                                             data: any,
                                                             row: any
                                                         ) => (
-                                                            <div className="text-center">
+                                                            <div
+                                                                className="btns-acciones"
+                                                                onClick={(e) =>
+                                                                    e.stopPropagation()
+                                                                }
+                                                            >
+                                                                {/* Ver confirmación de recibido */}
                                                                 <Button
-                                                                    className="btn-icon btn btn-warning"
+                                                                    className="btn-icon"
                                                                     variant="danger"
                                                                     title="Ver confirmación de recibido"
                                                                     onClick={() => {
@@ -1071,8 +1090,9 @@ export default function Recepcion({
                                                                     <i className="fa fa-file-pdf-o"></i>
                                                                 </Button>
 
+                                                                {/* Ver respuesta al oficio */}
                                                                 <Button
-                                                                    className="btn-icon btn btn-warning ml-1"
+                                                                    className="btn-icon"
                                                                     variant="danger"
                                                                     title="Ver respuesta al oficio"
                                                                     onClick={() => {
@@ -1084,7 +1104,6 @@ export default function Recepcion({
                                                                                     "pdf",
                                                                             }
                                                                         );
-
                                                                         setShow(
                                                                             true
                                                                         );
@@ -1093,10 +1112,11 @@ export default function Recepcion({
                                                                     <i className="fa fa-file-pdf-o"></i>
                                                                 </Button>
 
+                                                                {/* Archivos adjuntos de la respuesta */}
                                                                 {row.total_respuesta !==
-                                                                null ? (
+                                                                    null && (
                                                                     <Button
-                                                                        className="btn-icon ml-1"
+                                                                        className="btn-icon"
                                                                         variant="primary"
                                                                         onClick={() => {
                                                                             verArchivosAdjuntos(
@@ -1108,10 +1128,11 @@ export default function Recepcion({
                                                                     >
                                                                         <i className="fa fa-folder-open"></i>
                                                                     </Button>
-                                                                ) : null}
+                                                                )}
 
+                                                                {/* Ver PDF del oficio */}
                                                                 <Button
-                                                                    className="btn-icon ml-1"
+                                                                    className="btn-icon"
                                                                     variant="danger"
                                                                     title="Ver PDF del oficio"
                                                                     onClick={() => {
@@ -1123,7 +1144,6 @@ export default function Recepcion({
                                                                                     "pdf",
                                                                             }
                                                                         );
-
                                                                         setShow(
                                                                             true
                                                                         );
@@ -1132,10 +1152,11 @@ export default function Recepcion({
                                                                     <i className="fa fa-eye"></i>
                                                                 </Button>
 
+                                                                {/* Archivos del oficio inicial */}
                                                                 {row.total_inicial !==
-                                                                null ? (
+                                                                    null && (
                                                                     <Button
-                                                                        className="btn-icon ml-1"
+                                                                        className="btn-icon"
                                                                         variant="warning"
                                                                         title="Ver archivos del oficio inicial"
                                                                         onClick={() => {
@@ -1147,10 +1168,11 @@ export default function Recepcion({
                                                                     >
                                                                         <i className="fa fa-folder-open"></i>
                                                                     </Button>
-                                                                ) : null}
+                                                                )}
 
+                                                                {/* Línea de tiempo */}
                                                                 <Button
-                                                                    className="btn-icon ml-1"
+                                                                    className="btn-icon"
                                                                     variant="success"
                                                                     onClick={() => {
                                                                         setVariables(
@@ -1222,9 +1244,15 @@ export default function Recepcion({
                                                             data: any,
                                                             row: any
                                                         ) => (
-                                                            <div className="text-center">
+                                                            <div
+                                                                className="btns-acciones"
+                                                                onClick={(e) =>
+                                                                    e.stopPropagation()
+                                                                }
+                                                            >
+                                                                {/* Ver PDF del oficio */}
                                                                 <Button
-                                                                    className="btn-icon "
+                                                                    className="btn-icon"
                                                                     variant="danger"
                                                                     title="Ver PDF del oficio"
                                                                     onClick={() => {
@@ -1236,7 +1264,6 @@ export default function Recepcion({
                                                                                     "pdf",
                                                                             }
                                                                         );
-
                                                                         setShow(
                                                                             true
                                                                         );
@@ -1336,8 +1363,13 @@ export default function Recepcion({
                                                             _data: any,
                                                             row: any
                                                         ) => (
-                                                            <div className="d-flex justify-content-center align-items-center gap-2 flex-nowrap">
-                                                                {/* Revisar respuesta (ejemplo con zmdi) */}
+                                                            <div
+                                                                className="btns-acciones"
+                                                                onClick={(e) =>
+                                                                    e.stopPropagation()
+                                                                }
+                                                            >
+                                                                {/* Revisar respuesta */}
                                                                 {row.revision >
                                                                     0 &&
                                                                     row.finalizado ===
@@ -1353,9 +1385,15 @@ export default function Recepcion({
                                                                                     id: row.id,
                                                                                 }
                                                                             )}
+                                                                            onClick={(
+                                                                                e
+                                                                            ) =>
+                                                                                e.stopPropagation()
+                                                                            }
+                                                                            className="btn-icon-link"
                                                                         >
                                                                             <Button
-                                                                                className="action-btn"
+                                                                                className="btn-icon"
                                                                                 variant="warning"
                                                                                 title="Revisar respuesta"
                                                                             >
@@ -1368,7 +1406,7 @@ export default function Recepcion({
                                                                 {row.archivo_respuesta !==
                                                                     null && (
                                                                     <Button
-                                                                        className="action-btn"
+                                                                        className="btn-icon"
                                                                         variant="danger"
                                                                         title="Ver confirmación de recibido"
                                                                         onClick={() => {
@@ -1389,7 +1427,7 @@ export default function Recepcion({
                                                                     </Button>
                                                                 )}
 
-                                                                {/* Editar */}
+                                                                {/* Editar (rol 3) */}
                                                                 {user.rol ==
                                                                     3 &&
                                                                     row.id_usuario ===
@@ -1405,12 +1443,14 @@ export default function Recepcion({
                                                                                     id: row.id,
                                                                                 }
                                                                             )}
-                                                                            style={{
-                                                                                color: "white",
-                                                                            }}
+                                                                            onClick={(
+                                                                                e
+                                                                            ) =>
+                                                                                e.stopPropagation()
+                                                                            }
                                                                         >
                                                                             <Button
-                                                                                className="action-btn"
+                                                                                className="btn-icon"
                                                                                 variant={
                                                                                     row.descripcion_rechazo_final !==
                                                                                     null
@@ -1442,12 +1482,14 @@ export default function Recepcion({
                                                                                     id: row.id,
                                                                                 }
                                                                             )}
-                                                                            style={{
-                                                                                color: "white",
-                                                                            }}
+                                                                            onClick={(
+                                                                                e
+                                                                            ) =>
+                                                                                e.stopPropagation()
+                                                                            }
                                                                         >
                                                                             <Button
-                                                                                className="action-btn"
+                                                                                className="btn-icon"
                                                                                 variant={
                                                                                     row.descripcion_rechazo_final !==
                                                                                         null ||
@@ -1471,17 +1513,22 @@ export default function Recepcion({
                                                                             id: row.id,
                                                                         }
                                                                     )}
+                                                                    onClick={(
+                                                                        e
+                                                                    ) =>
+                                                                        e.stopPropagation()
+                                                                    }
                                                                 >
                                                                     <Button
-                                                                        className="action-btn"
+                                                                        className="btn-icon"
                                                                         variant="danger"
                                                                         title="Ver detalle del oficio"
                                                                     >
                                                                         <i className="fa fa-eye" />
                                                                     </Button>
                                                                 </Link>
-                                                                {/* Cancelar */}
 
+                                                                {/* Cancelar */}
                                                                 {(user.rol ==
                                                                     3 ||
                                                                     user.rol ==
@@ -1491,7 +1538,7 @@ export default function Recepcion({
                                                                     row.enviado ===
                                                                         null && (
                                                                         <Button
-                                                                            className="action-btn"
+                                                                            className="btn-icon"
                                                                             variant="danger"
                                                                             title="Cancelar oficio"
                                                                             onClick={() =>
@@ -1501,7 +1548,7 @@ export default function Recepcion({
                                                                             }
                                                                             disabled={
                                                                                 formCancelar.processing
-                                                                            } // evita doble click
+                                                                            }
                                                                         >
                                                                             <i className="fa fa-ban" />
                                                                         </Button>
@@ -1600,11 +1647,17 @@ export default function Recepcion({
                                                             data: any,
                                                             row: any
                                                         ) => (
-                                                            <div className="text-center">
+                                                            <div
+                                                                className="btns-acciones"
+                                                                onClick={(e) =>
+                                                                    e.stopPropagation()
+                                                                }
+                                                            >
                                                                 {row.masivo ==
                                                                 1 ? (
+                                                                    // Ver confirmación (PDF)
                                                                     <Button
-                                                                        className="btn-icon btn btn-warning mr-1"
+                                                                        className="btn-icon"
                                                                         variant="danger"
                                                                         title="Ver confirmación de recibido"
                                                                         onClick={() => {
@@ -1624,6 +1677,7 @@ export default function Recepcion({
                                                                         <i className="fa fa-file-pdf-o"></i>
                                                                     </Button>
                                                                 ) : (
+                                                                    // Ir a confirmaciones de recibido
                                                                     <Link
                                                                         href={route(
                                                                             "oficios.confirmaRecibidosNuevos",
@@ -1631,17 +1685,23 @@ export default function Recepcion({
                                                                                 id: row.id,
                                                                             }
                                                                         )}
+                                                                        onClick={(
+                                                                            e
+                                                                        ) =>
+                                                                            e.stopPropagation()
+                                                                        }
                                                                     >
                                                                         <Button
-                                                                            className="btn-icon btn btn-warning mr-1"
+                                                                            className="btn-icon"
                                                                             variant="warning"
                                                                             title="Confirmaciones de recibido"
                                                                         >
-                                                                            <i className="fa fa-handshake-o"></i>{" "}
+                                                                            <i className="fa fa-handshake-o"></i>
                                                                         </Button>
                                                                     </Link>
                                                                 )}
 
+                                                                {/* Ver detalle */}
                                                                 <Link
                                                                     href={route(
                                                                         "oficios.detalleNuevo",
@@ -1649,9 +1709,14 @@ export default function Recepcion({
                                                                             id: row.id,
                                                                         }
                                                                     )}
+                                                                    onClick={(
+                                                                        e
+                                                                    ) =>
+                                                                        e.stopPropagation()
+                                                                    }
                                                                 >
                                                                     <Button
-                                                                        className="btn-icon "
+                                                                        className="btn-icon"
                                                                         variant="danger"
                                                                         title="Ver detalle del oficio"
                                                                     >
@@ -1864,7 +1929,12 @@ export default function Recepcion({
                                         className="display table-bordered  border-bottom ancho100"
                                         slots={{
                                             1: (data: any, row: any) => (
-                                                <div className="text-center">
+                                                <div
+                                                    className="btns-acciones"
+                                                    onClick={(e) =>
+                                                        e.stopPropagation()
+                                                    }
+                                                >
                                                     <Button
                                                         className="btn-icon ml-1"
                                                         variant="danger"

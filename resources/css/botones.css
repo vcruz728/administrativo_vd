@@ -12,6 +12,10 @@
     line-height: 1;
 }
 
+.btns-acciones a {
+    margin: 0 !important;
+}
+
 .btns-acciones {
     display: flex;
     align-items: center;
@@ -22,4 +26,8 @@
 
 td.dt-acciones {
     vertical-align: middle !important;
+}
+
+.btns-acciones a {
+    margin: 0 !important;
 }

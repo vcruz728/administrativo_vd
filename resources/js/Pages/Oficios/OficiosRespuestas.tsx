@@ -716,8 +716,9 @@ const OficiosRespuestas = ({
                                                                     e.stopPropagation()
                                                                 }
                                                             >
+                                                                {/* Ver confirmación de recibido */}
                                                                 <Button
-                                                                    className="btn-icon btn btn-warning"
+                                                                    className="btn-icon"
                                                                     variant="danger"
                                                                     title="Ver confirmación de recibido"
                                                                     onClick={() => {
@@ -737,8 +738,9 @@ const OficiosRespuestas = ({
                                                                     <i className="fa fa-file-pdf-o"></i>
                                                                 </Button>
 
+                                                                {/* Ver respuesta al oficio */}
                                                                 <Button
-                                                                    className="btn-icon btn btn-warning ml-1"
+                                                                    className="btn-icon"
                                                                     variant="danger"
                                                                     title="Ver respuesta al oficio"
                                                                     onClick={() => {
@@ -750,7 +752,6 @@ const OficiosRespuestas = ({
                                                                                     "pdf",
                                                                             }
                                                                         );
-
                                                                         setShowPdf(
                                                                             true
                                                                         );
@@ -759,8 +760,9 @@ const OficiosRespuestas = ({
                                                                     <i className="fa fa-file-pdf-o"></i>
                                                                 </Button>
 
+                                                                {/* Ver PDF del oficio */}
                                                                 <Button
-                                                                    className="btn-icon ml-1"
+                                                                    className="btn-icon"
                                                                     variant="danger"
                                                                     title="Ver PDF del oficio"
                                                                     onClick={() => {
@@ -772,7 +774,6 @@ const OficiosRespuestas = ({
                                                                                     "pdf",
                                                                             }
                                                                         );
-
                                                                         setShowPdf(
                                                                             true
                                                                         );
@@ -781,8 +782,9 @@ const OficiosRespuestas = ({
                                                                     <i className="fa fa-eye"></i>
                                                                 </Button>
 
+                                                                {/* Línea de tiempo */}
                                                                 <Button
-                                                                    className="btn-icon ml-1"
+                                                                    className="btn-icon"
                                                                     variant="success"
                                                                     onClick={() => {
                                                                         setVariables(
@@ -860,8 +862,9 @@ const OficiosRespuestas = ({
                                                                     e.stopPropagation()
                                                                 }
                                                             >
+                                                                {/* Ver PDF del oficio */}
                                                                 <Button
-                                                                    className="btn-icon "
+                                                                    className="btn-icon"
                                                                     variant="danger"
                                                                     title="Ver PDF del oficio"
                                                                     onClick={() => {
@@ -873,7 +876,6 @@ const OficiosRespuestas = ({
                                                                                     "pdf",
                                                                             }
                                                                         );
-
                                                                         setShowPdf(
                                                                             true
                                                                         );
@@ -986,7 +988,7 @@ const OficiosRespuestas = ({
                                                                         row.archivo_respuesta ===
                                                                         null ? (
                                                                             <Button
-                                                                                className="btn-icon btn btn-warning mr-1"
+                                                                                className="btn-icon"
                                                                                 variant="warning"
                                                                                 title="Subir confirmación de recibido"
                                                                                 onClick={() => {
@@ -1007,7 +1009,7 @@ const OficiosRespuestas = ({
                                                                             </Button>
                                                                         ) : (
                                                                             <Button
-                                                                                className="btn-icon btn btn-warning mr-1"
+                                                                                className="btn-icon"
                                                                                 variant="danger"
                                                                                 title="Ver confirmación de recibido"
                                                                                 onClick={() => {
@@ -1037,13 +1039,18 @@ const OficiosRespuestas = ({
                                                                                 id: row.id,
                                                                             }
                                                                         )}
+                                                                        onClick={(
+                                                                            e
+                                                                        ) =>
+                                                                            e.stopPropagation()
+                                                                        }
                                                                     >
                                                                         <Button
-                                                                            className="btn-icon btn btn-warning mr-1"
+                                                                            className="btn-icon"
                                                                             variant="warning"
                                                                             title="Confirmaciones de recibido"
                                                                         >
-                                                                            <i className="fa fa-handshake-o"></i>{" "}
+                                                                            <i className="fa fa-handshake-o"></i>
                                                                         </Button>
                                                                     </Link>
                                                                 ) : null}
@@ -1057,13 +1064,18 @@ const OficiosRespuestas = ({
                                                                                 id: row.id,
                                                                             }
                                                                         )}
+                                                                        onClick={(
+                                                                            e
+                                                                        ) =>
+                                                                            e.stopPropagation()
+                                                                        }
                                                                     >
                                                                         <Button
-                                                                            className="btn-icon btn btn-warning mr-1"
+                                                                            className="btn-icon"
                                                                             variant="primary"
                                                                             title="Revisar respuesta"
                                                                         >
-                                                                            <i className="zmdi zmdi-pin-account"></i>{" "}
+                                                                            <i className="zmdi zmdi-pin-account"></i>
                                                                         </Button>
                                                                     </Link>
                                                                 ) : null}
@@ -1075,9 +1087,14 @@ const OficiosRespuestas = ({
                                                                             id: row.id,
                                                                         }
                                                                     )}
+                                                                    onClick={(
+                                                                        e
+                                                                    ) =>
+                                                                        e.stopPropagation()
+                                                                    }
                                                                 >
                                                                     <Button
-                                                                        className="btn-icon "
+                                                                        className="btn-icon"
                                                                         variant="danger"
                                                                         title="Ver detalle del oficio"
                                                                     >
@@ -1186,8 +1203,9 @@ const OficiosRespuestas = ({
                                                             >
                                                                 {row.masivo ==
                                                                 1 ? (
+                                                                    // Ver confirmación de recibido (PDF)
                                                                     <Button
-                                                                        className="btn-icon btn btn-warning mr-1"
+                                                                        className="btn-icon"
                                                                         variant="danger"
                                                                         title="Ver confirmación de recibido"
                                                                         onClick={() => {
@@ -1207,6 +1225,7 @@ const OficiosRespuestas = ({
                                                                         <i className="fa fa-file-pdf-o"></i>
                                                                     </Button>
                                                                 ) : (
+                                                                    // Confirmaciones de recibido
                                                                     <Link
                                                                         href={route(
                                                                             "oficios.confirmaRecibidosNuevos",
@@ -1214,17 +1233,23 @@ const OficiosRespuestas = ({
                                                                                 id: row.id,
                                                                             }
                                                                         )}
+                                                                        onClick={(
+                                                                            e
+                                                                        ) =>
+                                                                            e.stopPropagation()
+                                                                        }
                                                                     >
                                                                         <Button
-                                                                            className="btn-icon btn btn-warning mr-1"
+                                                                            className="btn-icon"
                                                                             variant="warning"
                                                                             title="Confirmaciones de recibido"
                                                                         >
-                                                                            <i className="fa fa-handshake-o"></i>{" "}
+                                                                            <i className="fa fa-handshake-o"></i>
                                                                         </Button>
                                                                     </Link>
                                                                 )}
 
+                                                                {/* Ver detalle del oficio */}
                                                                 <Link
                                                                     href={route(
                                                                         "oficios.detalleNuevo",
@@ -1232,9 +1257,14 @@ const OficiosRespuestas = ({
                                                                             id: row.id,
                                                                         }
                                                                     )}
+                                                                    onClick={(
+                                                                        e
+                                                                    ) =>
+                                                                        e.stopPropagation()
+                                                                    }
                                                                 >
                                                                     <Button
-                                                                        className="btn-icon "
+                                                                        className="btn-icon"
                                                                         variant="danger"
                                                                         title="Ver detalle del oficio"
                                                                     >
