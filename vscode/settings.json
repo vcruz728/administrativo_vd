@@ -1,0 +1,21 @@
+{
+    // === PHP Intelephense ===
+    "intelephense.environment.includePaths": [
+        "vendor/laravel/framework/src",
+        "vendor/laravel/tinker/src"
+    ],
+
+    // Desactiva falsos positivos comunes de Laravel
+    "intelephense.diagnostics.undefinedFunctions": false,
+    "intelephense.diagnostics.undefinedConstants": false,
+    "intelephense.diagnostics.undefinedTypes": false,
+    "intelephense.diagnostics.undefinedVariables": false,
+
+    // Indexar más rápido
+    "intelephense.files.maxSize": 5000000,
+
+    // === Opcional: formateo de PHP ===
+    "editor.formatOnSave": true,
+    "php.validate.enable": true,
+    "php.suggest.basic": false
+}
