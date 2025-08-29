@@ -49,12 +49,14 @@ export default function Recepcion({
     usuariosSelect,
     procesos,
     nuevos,
+    informativos: informativosProp, // <-- aquí
 }: {
     status?: string;
     usuariosSelect: [];
     oficios: [];
     procesos: [];
     nuevos: [];
+    informativos: []; // <-- y aquí en el tipado
 }) {
     const user = usePage().props.auth.user;
     const [show, setShow] = useState<boolean>(false);
@@ -82,34 +84,13 @@ export default function Recepcion({
 
     useEffect(() => {
         setActivos(
-            (oficios || [])
-                .filter(
-                    (item: any) =>
-                        item.archivo_respuesta === null && item.id_area != "1"
-                )
-                .map((file: any) => ({
-                    ...file,
-                }))
+            (oficios || []).filter((i: any) => i.archivo_respuesta === null)
         );
         setHistorico(
-            (oficios || [])
-                .filter(
-                    (item: any) =>
-                        item.archivo_respuesta !== null && item.id_area != "1"
-                )
-                .map((file: any) => ({
-                    ...file,
-                }))
+            (oficios || []).filter((i: any) => i.archivo_respuesta !== null)
         );
-
-        setInformativos(
-            (oficios || [])
-                .filter((item: any) => item.id_area === "1")
-                .map((file: any) => ({
-                    ...file,
-                }))
-        );
-    }, [oficios]);
+        setInformativos(informativosProp || []); // ← ya NO es undefined
+    }, [oficios, informativosProp]);
 
     useEffect(() => {
         setNuevoOfi(
@@ -195,7 +176,11 @@ export default function Recepcion({
         );
     };
 
+    const [posting, setPosting] = useState(false);
+
     const marcarComoInformativo = async (row: any) => {
+        if (posting) return;
+
         // 1) Confirmación inicial
         const first = await Swal.fire({
             title: "¿Marcar como informativo?",
@@ -205,13 +190,12 @@ export default function Recepcion({
             showDenyButton: true,
             confirmButtonText: "Sí",
             denyButtonText: "No",
-            cancelButtonText: "Cancelar",
             reverseButtons: false,
             allowOutsideClick: false,
             customClass: { container: "swalSuperior" },
         });
 
-        if (first.isDismissed) return; // Cancelar
+        if (first.isDismissed) return;
         if (first.isDenied) {
             await Swal.fire(
                 "Acción cancelada",
@@ -229,17 +213,15 @@ export default function Recepcion({
             showDenyButton: true,
             confirmButtonText: "Sí",
             denyButtonText: "No",
-            cancelButtonText: "Cancelar",
             reverseButtons: false,
             allowOutsideClick: false,
             customClass: { container: "swalSuperior" },
         });
 
-        if (second.isDismissed) return; // Cancelar
+        if (second.isDismissed) return;
 
-        const requiere_atencion = second.isConfirmed; // Sí -> true, No -> false
+        const requiere_atencion = second.isConfirmed; // Sí → true, No → false
 
-        // Mensaje previo según elección
         if (requiere_atencion) {
             await Swal.fire(
                 "Informativo con atención",
@@ -254,12 +236,13 @@ export default function Recepcion({
             );
         }
 
-        // 3) POST al backend
+        setPosting(true);
         router.post(
             route("oficios.marcarInformativo", { id: row.id }),
             { requiere_atencion },
             {
                 preserveScroll: true,
+                preserveState: true, // evita que Inertia te pise el estado de las tablas
                 onSuccess: () => {
                     toast("Oficio marcado como informativo.", {
                         style: {
@@ -270,21 +253,22 @@ export default function Recepcion({
                         position: "top-center",
                     });
 
-                    // Actualización optimista de pestañas sin recargar:
                     if (!requiere_atencion) {
-                        // Si NO requiere atención => sácalo de Activos y mándalo a Informativos
+                        // Mover a Informativos Históricos
                         setActivos((prev: any[] | undefined) =>
-                            (prev ?? []).filter((o) => o.id !== row.id)
+                            (prev ?? []).filter(
+                                (o) => String(o.id) !== String(row.id)
+                            )
                         );
                         setInformativos((prev: any[] | undefined) => [
                             ...(prev ?? []),
                             { ...row, informativo: 1, requiere_atencion: 0 },
                         ]);
                     } else {
-                        // Si SÍ requiere atención => permanece en Activos pero "no cuenta" para semáforo
+                        // Se queda en Activos pero “no cuenta” para semáforo
                         setActivos((prev: any[] | undefined) =>
                             (prev ?? []).map((o) =>
-                                o.id === row.id
+                                String(o.id) === String(row.id)
                                     ? {
                                           ...o,
                                           informativo: 1,
@@ -302,6 +286,7 @@ export default function Recepcion({
                         "error"
                     );
                 },
+                onFinish: () => setPosting(false),
             }
         );
     };
@@ -466,6 +451,7 @@ export default function Recepcion({
                 break;
         }
     };
+
     return (
         <AppLayout>
             <Head>
@@ -901,6 +887,9 @@ export default function Recepcion({
                                                                         marcarComoInformativo(
                                                                             row
                                                                         )
+                                                                    }
+                                                                    disabled={
+                                                                        posting
                                                                     }
                                                                 >
                                                                     <i className="fa fa-info-circle"></i>

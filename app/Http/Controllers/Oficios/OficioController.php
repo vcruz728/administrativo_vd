@@ -33,40 +33,31 @@ use App\Models\User;
 class OficioController extends Controller
 {
 
-	public function index()
-	{
-		$where = "";
-		$whereDos = "";
-		if (\Auth::user()->rol == 3) {
-			$where = " AND area = " . \Auth::user()->id_area;
-			$whereDos = " AND id_area = " . \Auth::user()->id_area . " AND revision = 1";
-		} else if (\Auth::user()->rol == 4) {
-			$where = " AND id_usuario = " . \Auth::user()->id;
-			$whereDos = " AND id_usuario = " . \Auth::user()->id;
-		}
+public function index()
+{
+    // 1) Subconsultas de respuestas (sin cambios)
+    $ultResp = DB::table('respuestas_oficio as r')
+        ->select([
+            'r.id_oficio',
+            'r.respuesta',
+            'r.nombre',
+            DB::raw('r.oficio_respuesta as oficio_respuesta_all'),
+            DB::raw('ROW_NUMBER() OVER (PARTITION BY r.id_oficio ORDER BY r.fecha_respuesta DESC, r.id DESC) AS rn'),
+        ]);
 
-		// 1) ÚLTIMA respuesta (sirve para asunto/destinatario y además nos traemos oficio_respuesta como respaldo)
-		$ultResp = DB::table('respuestas_oficio as r')
-			->select([
-				'r.id_oficio',
-				'r.respuesta',
-				'r.nombre',
-				DB::raw('r.oficio_respuesta as oficio_respuesta_all'),
-				DB::raw('ROW_NUMBER() OVER (PARTITION BY r.id_oficio ORDER BY r.fecha_respuesta DESC, r.id DESC) AS rn'),
-			]);
+    $ultRespFolio = DB::table('respuestas_oficio as r')
+        ->whereNotNull('r.oficio_respuesta')
+        ->whereRaw("LTRIM(RTRIM(CAST(r.oficio_respuesta AS VARCHAR(100)))) <> ''")
+        ->select([
+            'r.id_oficio',
+            'r.oficio_respuesta',
+            DB::raw('ROW_NUMBER() OVER (PARTITION BY r.id_oficio ORDER BY r.fecha_respuesta DESC, r.id DESC) AS rn'),
+        ]);
 
-		// 2) ÚLTIMA respuesta con folio NO vacío (para folio_respuesta)
-		$ultRespFolio = DB::table('respuestas_oficio as r')
-			->whereNotNull('r.oficio_respuesta')
-			->whereRaw("LTRIM(RTRIM(CAST(r.oficio_respuesta AS VARCHAR(100)))) <> ''")
-			->select([
-				'r.id_oficio',
-				'r.oficio_respuesta',
-				DB::raw('ROW_NUMBER() OVER (PARTITION BY r.id_oficio ORDER BY r.fecha_respuesta DESC, r.id DESC) AS rn'),
-			]);
-
-		$oficios = Oficio::select(
-			DB::raw("CASE 
+    // 2) Activos — excluye informativos históricos
+    $oficios = Oficio::select(
+        DB::raw("CASE 
+            WHEN oficios.informativo = 1 AND oficios.requiere_atencion = 1 THEN 0
             WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, oficios.fecha_respuesta, 120)) < cat_areas.minutos_oficio 
                  AND oficios.fecha_respuesta IS NOT NULL THEN 1
             WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, getdate(), 120)) < cat_areas.minutos_oficio 
@@ -76,102 +67,104 @@ class OficioController extends Controller
             WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, oficios.fecha_respuesta, 120)) > cat_areas.minutos_oficio 
                  AND oficios.fecha_respuesta IS NOT NULL THEN 4
             ELSE 5 END as estatus_valor"),
-			DB::raw("CASE 
+        DB::raw("CASE 
             WHEN oficios.informativo = 1 AND oficios.requiere_atencion = 1 THEN '#2b0dbdff'
             WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, oficios.fecha_respuesta, 120)) < cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NOT NULL THEN '#5fd710'
             WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, getdate(), 120)) < cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NULL THEN '#f5f233'
             WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, getdate(), 120)) > cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NULL THEN '#f98200'
             WHEN DATEDIFF (MINUTE, convert(varchar, oficios.created_at, 120), convert(varchar, oficios.fecha_respuesta, 120)) > cat_areas.minutos_oficio AND oficios.fecha_respuesta IS NOT NULL THEN '#ff2d2d'
             ELSE '#000000' END as color"),
-			DB::raw("CONCAT(
+        DB::raw("CONCAT(
             RIGHT('0'+cast(DAY(oficios.created_at) as varchar(2)),2),
             ' de ', dbo.fn_GetMonthName (oficios.created_at, 'Spanish'),
             ' de ',YEAR(oficios.created_at),' a las ', CONVERT(VARCHAR(5),oficios.created_at,108)
         ) as f_ingreso"),
-			'oficios.id',
-			'num_folio',
-			'num_oficio',
-			DB::raw("CASE WHEN ingreso = 'Email' THEN num_folio ELSE num_oficio END as numero_oficio"),
-			'cat_des.nombre as des',
-			'cat_areas.nombre as area',
-			'cat_procesos.nombre as proceso',
-			'dep_ua',
-			'area as id_area',
-			DB::raw("coalesce(users.name,'' ) as responsable"),
-			'oficios.id_usuario',
-			'proceso_impacta',
-			'descripcion',
-			'oficios.archivo',
-			'oficios.descripcion_respuesta',
-			'oficios.archivo_respuesta',
-			'oficios.descripcion_rechazo',
-			'oficios.finalizado',
-			'oficios.respuesta',
-			'oficios.oficio_final',
-			'oficios.descripcion_rechazo_jefe',
-			'descripcion_rechazo_final',
-			DB::raw("RIGHT(oficios.archivo_respuesta, 3) as extension"),
+        'oficios.id',
+        'num_folio',
+        'num_oficio',
+        DB::raw("CASE WHEN ingreso = 'Email' THEN num_folio ELSE num_oficio END as numero_oficio"),
+        'cat_des.nombre as des',
+        'cat_areas.nombre as area',
+        'cat_procesos.nombre as proceso',
+        'dep_ua',
+        'area as id_area',
+        DB::raw("coalesce(users.name,'' ) as responsable"),
+        'oficios.id_usuario',
+        'proceso_impacta',
+        'descripcion',
+        'oficios.archivo',
+        'oficios.descripcion_respuesta',
+        'oficios.archivo_respuesta',
+        'oficios.descripcion_rechazo',
+        'oficios.finalizado',
+        'oficios.respuesta',
+        'oficios.oficio_final',
+        'oficios.descripcion_rechazo_jefe',
+        'descripcion_rechazo_final',
+        DB::raw("RIGHT(oficios.archivo_respuesta, 3) as extension"),
+        DB::raw("COALESCE(rof.oficio_respuesta, ro.oficio_respuesta_all, '') as folio_respuesta"),
+        DB::raw("COALESCE(ro.nombre,'') as destinatario"),
+        DB::raw("COALESCE(ro.respuesta,'') as asunto"),
+        't3.total_inicial',
+        't4.total_respuesta'
+    )
+    ->join('cat_des', 'cat_des.id', 'oficios.dep_ua')
+    ->join('cat_areas', 'cat_areas.id', 'oficios.area')
+    ->leftJoin('cat_procesos', 'cat_procesos.id', 'oficios.proceso_impacta')
+    ->leftJoin('users', 'users.id', 'oficios.id_usuario')
+    ->leftJoinSub($ultResp, 'ro', function ($join) {
+        $join->on('ro.id_oficio', '=', 'oficios.id')->where('ro.rn', '=', 1);
+    })
+    ->leftJoinSub($ultRespFolio, 'rof', function ($join) {
+        $join->on('rof.id_oficio', '=', 'oficios.id')->where('rof.rn', '=', 1);
+    })
+    ->leftJoin(
+        DB::raw("(SELECT COUNT(id) as total_inicial, id_oficio_inicial
+                  FROM archivos_oficios
+                  WHERE id_nuevo_oficio IS NULL AND id_oficio IS NULL
+                  GROUP BY id_oficio_inicial) as t3"),
+        't3.id_oficio_inicial',
+        'oficios.id'
+    )
+    ->leftJoin(
+        DB::raw("(SELECT COUNT(id) as total_respuesta, id_oficio
+                  FROM archivos_oficios
+                  WHERE id_nuevo_oficio IS NULL AND id_oficio_inicial IS NULL
+                  GROUP BY id_oficio) as t4"),
+        't4.id_oficio',
+        'oficios.id'
+    )
+    // Filtros por rol (agrupados)
+    ->when(auth()->user()->rol == 3, function ($q) {
+        $q->where(function ($w) {
+            $w->where('oficios.area', auth()->user()->id_area)
+              ->orWhere('oficios.area', 1);
+        });
+    })
+    ->when(auth()->user()->rol == 4, function ($q) {
+        $q->where(function ($w) {
+            $w->where('oficios.id_usuario', auth()->id())
+              ->orWhere('oficios.area', 1);
+        });
+    })
+    // Excluir informativos históricos
+    ->whereNot(function ($q) {
+        $q->where('oficios.informativo', 1)
+          ->where('oficios.requiere_atencion', 0);
+    })
+    ->orderBy('oficios.created_at', 'desc')
+    ->get();
 
-			// 👉 FOLIO: prioriza la última con folio; si no hay, intenta con la última respuesta (por si viene ahí)
-			DB::raw("COALESCE(rof.oficio_respuesta, ro.oficio_respuesta_all, '') as folio_respuesta"),
+    // 3) Selects auxiliares
+    $procesos = Procesos::getSelForArea(auth()->user()->id_area);
+    $usuarios = User::getSel(auth()->user()->id_area);
 
-			// 👉 Asunto/Destinatario desde la última respuesta
-			DB::raw("COALESCE(ro.nombre,'') as destinatario"),
-			DB::raw("COALESCE(ro.respuesta,'') as asunto"),
-
-			't3.total_inicial',
-			't4.total_respuesta'
-		)
-			->join('cat_des', 'cat_des.id', 'oficios.dep_ua')
-			->join('cat_areas', 'cat_areas.id', 'oficios.area')
-			->leftJoin('cat_procesos', 'cat_procesos.id', 'oficios.proceso_impacta')
-			->leftJoin('users', 'users.id', 'oficios.id_usuario')
-
-			// Join: última respuesta (asunto/destinatario y respaldo de folio)
-			->leftJoinSub($ultResp, 'ro', function ($join) {
-				$join->on('ro.id_oficio', '=', 'oficios.id')
-					->where('ro.rn', '=', 1);
-			})
-
-			// Join: última respuesta que SÍ tenga folio
-			->leftJoinSub($ultRespFolio, 'rof', function ($join) {
-				$join->on('rof.id_oficio', '=', 'oficios.id')
-					->where('rof.rn', '=', 1);
-			})
-
-			->leftJoin(
-				DB::raw("(SELECT COUNT(id) as total_inicial, id_oficio_inicial
-                         FROM archivos_oficios
-                         WHERE id_nuevo_oficio IS NULL AND id_oficio IS NULL
-                         GROUP BY id_oficio_inicial) as t3"),
-				't3.id_oficio_inicial',
-				'oficios.id'
-			)
-			->leftJoin(
-				DB::raw("(SELECT COUNT(id) as total_respuesta, id_oficio
-                         FROM archivos_oficios
-                         WHERE id_nuevo_oficio IS NULL AND id_oficio_inicial IS NULL
-                         GROUP BY id_oficio) as t4"),
-				't4.id_oficio',
-				'oficios.id'
-			)
-			->whereRaw("1=1 $where")
-			->orWhere("area", 1)
-			->orderBy('oficios.created_at', 'desc')
-			->get();
-
-
-
-		$procesos = Procesos::getSelForArea(\Auth::user()->id_area);
-		$usuarios = User::getSel(\Auth::user()->id_area);
-
-		// --- (VD) se queda como lo tenías ---
-		$destAgg = DB::table('destinatarios_oficio as d')
-			->leftJoin('directorios as dir', 'dir.id', '=', 'd.id_usuario')
-			->leftJoin('cat_destinatarios_externos as ext', 'ext.id', '=', 'd.id_usuario')
-			->whereNull('d.deleted_at')
-			->groupBy('d.id_oficio')
-			->selectRaw("
+    $destAgg = DB::table('destinatarios_oficio as d')
+        ->leftJoin('directorios as dir', 'dir.id', '=', 'd.id_usuario')
+        ->leftJoin('cat_destinatarios_externos as ext', 'ext.id', '=', 'd.id_usuario')
+        ->whereNull('d.deleted_at')
+        ->groupBy('d.id_oficio')
+        ->selectRaw("
             d.id_oficio,
             COUNT(*) AS total_dest,
             STRING_AGG(CAST(d.folio AS varchar(10)), ', ') AS folios,
@@ -185,29 +178,30 @@ class OficioController extends Controller
             END AS nombre_desti
         ");
 
-		$t3 = DB::table('archivos_oficios as a')
-			->whereNull('a.id_oficio_inicial')
-			->whereNull('a.id_oficio')
-			->groupBy('a.id_nuevo_oficio')
-			->selectRaw('COUNT(a.id) AS total_nuevo, a.id_nuevo_oficio');
+    $t3 = DB::table('archivos_oficios as a')
+        ->whereNull('a.id_oficio_inicial')
+        ->whereNull('a.id_oficio')
+        ->groupBy('a.id_nuevo_oficio')
+        ->selectRaw('COUNT(a.id) AS total_nuevo, a.id_nuevo_oficio');
 
-		$nuevos = NuevoOficio::query()
-			->from('nuevos_oficios')
-			->select([
-				'nuevos_oficios.id',
-				'cat_areas.nombre as area',
-				'nuevos_oficios.nombre as destinatario',
-				'nuevos_oficios.archivo_respuesta',
-				'enviado',
-				'finalizado',
-				'revision',
-				'id_usuario',
-				'descripcion_rechazo_jefe',
-				'descripcion_rechazo_final',
-				'archivo',
-				DB::raw('COALESCE(respuesta, descripcion) AS respuesta'),
-				'masivo',
-				DB::raw("
+    // 4) Nuevos oficios
+    $nuevos = NuevoOficio::query()
+        ->from('nuevos_oficios')
+        ->select([
+            'nuevos_oficios.id',
+            'cat_areas.nombre as area',
+            'nuevos_oficios.nombre as destinatario',
+            'nuevos_oficios.archivo_respuesta',
+            'enviado',
+            'finalizado',
+            'revision',
+            'id_usuario',
+            'descripcion_rechazo_jefe',
+            'descripcion_rechazo_final',
+            'archivo',
+            DB::raw('COALESCE(respuesta, descripcion) AS respuesta'),
+            'masivo',
+            DB::raw("
                 COALESCE(
                     CAST(nuevos_oficios.oficio_respuesta AS VARCHAR(50)),
                     CASE WHEN dest.total_dest = 1
@@ -216,8 +210,8 @@ class OficioController extends Controller
                     END
                 ) AS oficio_respuesta
             "),
-				DB::raw("COALESCE(dest.nombre_desti, '') AS nombre_desti"),
-				DB::raw("
+            DB::raw("COALESCE(dest.nombre_desti, '') AS nombre_desti"),
+            DB::raw("
                 CONCAT(
                     RIGHT('0' + CAST(DAY(nuevos_oficios.created_at) AS varchar(2)), 2),
                     ' de ', dbo.fn_GetMonthName(nuevos_oficios.created_at, 'Spanish'),
@@ -225,71 +219,139 @@ class OficioController extends Controller
                     ' a las ', CONVERT(VARCHAR(5), nuevos_oficios.created_at, 108)
                 ) AS f_ingreso
             "),
-				DB::raw('RIGHT(nuevos_oficios.archivo_respuesta, 3) AS extension'),
-				't3.total_nuevo',
-			])
-			->join('cat_areas', 'cat_areas.id', '=', 'nuevos_oficios.id_area')
-			->leftJoinSub($t3, 't3', function ($join) {
-				$join->on('t3.id_nuevo_oficio', '=', 'nuevos_oficios.id');
-			})
-			->leftJoinSub($destAgg, 'dest', function ($join) {
-				$join->on('dest.id_oficio', '=', 'nuevos_oficios.id');
-			})
-			->whereRaw("1=1 $whereDos")
-			->orderByDesc('nuevos_oficios.created_at')
-			->get();
+            DB::raw('RIGHT(nuevos_oficios.archivo_respuesta, 3) AS extension'),
+            't3.total_nuevo',
+        ])
+        ->join('cat_areas', 'cat_areas.id', '=', 'nuevos_oficios.id_area')
+        ->leftJoinSub($t3, 't3', function ($join) {
+            $join->on('t3.id_nuevo_oficio', '=', 'nuevos_oficios.id');
+        })
+        ->leftJoinSub($destAgg, 'dest', function ($join) {
+            $join->on('dest.id_oficio', '=', 'nuevos_oficios.id');
+        })
+        ->when(auth()->user()->rol == 3, function ($q) {
+            $q->where('nuevos_oficios.id_area', auth()->user()->id_area)
+              ->where('nuevos_oficios.revision', 1);
+        })
+        ->when(auth()->user()->rol == 4, function ($q) {
+            $q->where('nuevos_oficios.id_usuario', auth()->id());
+        })
+        ->orderByDesc('nuevos_oficios.created_at')
+        ->get();
 
-		$nuevos = $nuevos->map(function ($item) {
-			if (!empty($item->oficio_respuesta)) {
-				$folios = explode(',', $item->oficio_respuesta);
-				$folios = array_map('trim', $folios);
-				$folios = array_values(array_filter($folios, fn($x) => is_numeric($x)));
-				sort($folios, SORT_NUMERIC);
+    // Post-proceso de oficio_respuesta
+    $nuevos = $nuevos->map(function ($item) {
+        if (!empty($item->oficio_respuesta)) {
+            $folios = explode(',', $item->oficio_respuesta);
+            $folios = array_map('trim', $folios);
+            $folios = array_values(array_filter($folios, fn($x) => is_numeric($x)));
+            sort($folios, SORT_NUMERIC);
 
-				$rango = [];
-				$inicio = $prev = null;
+            $rango = [];
+            $inicio = $prev = null;
 
-				foreach ($folios as $folio) {
-					if ($inicio === null) {
-						$inicio = $prev = $folio;
-						continue;
-					}
-					if ($folio == $prev + 1) {
-						$prev = $folio;
-					} else {
-						$rango[] = ($inicio == $prev) ? $inicio : "$inicio-$prev";
-						$inicio = $prev = $folio;
-					}
-				}
-				if ($inicio !== null) {
-					$rango[] = ($inicio == $prev) ? $inicio : "$inicio-$prev";
-				}
+            foreach ($folios as $folio) {
+                if ($inicio === null) { $inicio = $prev = $folio; continue; }
+                if ($folio == $prev + 1) {
+                    $prev = $folio;
+                } else {
+                    $rango[] = ($inicio == $prev) ? $inicio : "$inicio-$prev";
+                    $inicio = $prev = $folio;
+                }
+            }
+            if ($inicio !== null) {
+                $rango[] = ($inicio == $prev) ? $inicio : "$inicio-$prev";
+            }
 
-				$item->oficio_respuesta = (count($folios) <= 5)
-					? implode(', ', $folios)
-					: implode(', ', $rango);
-			}
-			return $item;
-		});
+            $item->oficio_respuesta = (count($folios) <= 5)
+                ? implode(', ', $folios)
+                : implode(', ', $rango);
+        }
+        return $item;
+    });
 
-		if (\Auth::user()->rol == 6) {
-			return Inertia::render('Oficios/OficiosAdmin', [
-				'status'         => session('status'),
-				'oficios'        => $oficios,
-				'usuariosSelect' => $usuarios,
-				'procesos'       => $procesos,
-				'nuevos'         => $nuevos
-			]);
-		} else {
-			return Inertia::render('Oficios/MisOficios', [
-				'status'         => session('status'),
-				'oficios'        => $oficios,
-				'usuariosSelect' => $usuarios,
-				'procesos'       => $procesos,
-				'nuevos'         => $nuevos
-			]);
-		}
-	}
+    // 5) INFORMÁTIVOS HISTÓRICOS — SOLO su área (rol 3) o sus oficios (rol 4)
+    $informativos = Oficio::select(
+    DB::raw("CONCAT(
+        RIGHT('0'+cast(DAY(oficios.created_at) as varchar(2)),2),
+        ' de ', dbo.fn_GetMonthName (oficios.created_at, 'Spanish'),
+        ' de ',YEAR(oficios.created_at),' a las ', CONVERT(VARCHAR(5),oficios.created_at,108)
+    ) as f_ingreso"),
+    'oficios.id',
+    'num_folio',
+    'num_oficio',
+    DB::raw("CASE WHEN ingreso = 'Email' THEN num_folio ELSE num_oficio END as numero_oficio"),
+    'cat_des.nombre as des',
+    'cat_areas.nombre as area',
+    'cat_procesos.nombre as proceso',
+    'dep_ua',
+    'area as id_area',
+    DB::raw("coalesce(users.name,'' ) as responsable"),
+    'oficios.id_usuario',
+    'proceso_impacta',
+    'descripcion',
+    'oficios.archivo',
+    'oficios.descripcion_respuesta',
+    'oficios.archivo_respuesta',
+    'oficios.descripcion_rechazo',
+    'oficios.finalizado',
+    'oficios.respuesta',
+    'oficios.oficio_final',
+    'oficios.descripcion_rechazo_jefe',
+    'descripcion_rechazo_final',
+    DB::raw("RIGHT(oficios.archivo_respuesta, 3) as extension")
+)
+->join('cat_des', 'cat_des.id', 'oficios.dep_ua')
+->join('cat_areas', 'cat_areas.id', 'oficios.area')
+->leftJoin('cat_procesos', 'cat_procesos.id', 'oficios.proceso_impacta')
+->leftJoin('users', 'users.id', 'oficios.id_usuario')
+
+// SOLO informativos históricos
+->where('oficios.informativo', 1)
+->where('oficios.requiere_atencion', 0)
+
+// Filtro por rol:
+// - Rol 6 (admin): ve todo.
+// - Rol 1 y 3: SOLO su área.
+// - Rol 4: SOLO sus oficios.
+->when(in_array(auth()->user()->rol, [1, 3]), function ($q) {
+    $q->where('oficios.area', auth()->user()->id_area);
+})
+->when(auth()->user()->rol == 4, function ($q) {
+    $q->where('oficios.id_usuario', auth()->id());
+})
+
+->orderByDesc('oficios.created_at')
+->get();
+
+
+
+    // 6) Render
+    $common = [
+        'status'         => session('status'),
+        'oficios'        => $oficios,
+        'informativos'   => $informativos,
+        'usuariosSelect' => $usuarios,
+        'procesos'       => $procesos,
+        'nuevos'         => $nuevos,
+		'informativos'   => $informativos,
+'usuariosSelect' => $usuarios,
+'procesos'       => $procesos,
+'nuevos'         => $nuevos,
+'debug'          => [
+    'rol' => auth()->user()->rol,
+    'id_area' => auth()->user()->id_area,
+],
+
+    ];
+
+    if (auth()->user()->rol == 6) {
+        return Inertia::render('Oficios/OficiosAdmin', $common);
+    }
+    return Inertia::render('Oficios/MisOficios', $common);
+}
+
+
 
 	public function indexResp($id)
 	{
@@ -807,26 +869,22 @@ public function viewResp($id)
 			return to_route('oficiosRespuestas');
 		}
 	}
+public function marcarInformativo(Request $request, int $id)
+{
+    $data = $request->validate([
+        'requiere_atencion' => 'required|boolean',
+    ]);
 
-	public function marcarInformativo(\Illuminate\Http\Request $request, $id)
-	{
-		$data = $request->validate([
-			'requiere_atencion' => ['required', 'boolean'],
-		]);
+    $oficio = Oficio::findOrFail($id);
+    $oficio->informativo = 1;
+    $oficio->requiere_atencion = $data['requiere_atencion'] ? 1 : 0;
+    $oficio->save();
 
-		$oficio = \App\Models\Oficios\Oficio::findOrFail($id);
+    // Opcional: puedes devolver props parciales si usas Inertia partial reloads,
+    // pero con preserveState en front no es necesario.
+    return back()->with('status', 'Oficio marcado como informativo');
+}
 
-		// Marca informativo y si requiere atención
-		$oficio->informativo = 1;
-		$oficio->requiere_atencion = $data['requiere_atencion'] ? 1 : 0;
-
-		// Si NO requiere atención, aparecerá en “Informativos Históricos”
-		// Si SÍ requiere atención, permanecerá en Activos pero no debe contar para semáforo
-		$oficio->save();
-
-		// Devuelve a la vista actual (Inertia)
-		return back()->with('success', 'Oficio marcado como informativo.');
-	}
 
 	public function saveCopias(Request $request)
 	{
