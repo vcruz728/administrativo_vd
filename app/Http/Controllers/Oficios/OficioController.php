@@ -338,10 +338,10 @@ public function index()
 'usuariosSelect' => $usuarios,
 'procesos'       => $procesos,
 'nuevos'         => $nuevos,
-'debug'          => [
-    'rol' => auth()->user()->rol,
-    'id_area' => auth()->user()->id_area,
-],
+//'debug'          => [
+ //   'rol' => auth()->user()->rol,
+  //  'id_area' => auth()->user()->id_area,
+//],
 
     ];
 

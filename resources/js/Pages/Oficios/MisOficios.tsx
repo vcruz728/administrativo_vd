@@ -878,22 +878,25 @@ export default function Recepcion({
                                                                     <i className="fa fa-history"></i>
                                                                 </Button>
 
-                                                                {/* Marcar como informativo */}
-                                                                <Button
-                                                                    className="btn-icon"
-                                                                    variant="info"
-                                                                    title="Marcar como Informativo"
-                                                                    onClick={() =>
-                                                                        marcarComoInformativo(
-                                                                            row
-                                                                        )
-                                                                    }
-                                                                    disabled={
-                                                                        posting
-                                                                    }
-                                                                >
-                                                                    <i className="fa fa-info-circle"></i>
-                                                                </Button>
+                                                                {/* Marcar como informativo: solo si NO está finalizado */}
+                                                                {row.finalizado ===
+                                                                    null && (
+                                                                    <Button
+                                                                        className="btn-icon"
+                                                                        variant="info"
+                                                                        title="Marcar como Informativo"
+                                                                        onClick={() =>
+                                                                            marcarComoInformativo(
+                                                                                row
+                                                                            )
+                                                                        }
+                                                                        disabled={
+                                                                            posting
+                                                                        }
+                                                                    >
+                                                                        <i className="fa fa-info-circle"></i>
+                                                                    </Button>
+                                                                )}
                                                             </div>
                                                         ),
                                                     }}
